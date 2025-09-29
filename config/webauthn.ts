@@ -1,11 +1,13 @@
+import config from '@/utils/config';
+
 /**
  * WebAuthn configuration constants
  * Centralized configuration for Relying Party settings
  */
 
 export const WEBAUTHN_CONFIG = {
-  appId: process.env.EXPO_PUBLIC_APP_ID!,
-  associatedDomain: process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN!,
+  appId: config.appId,
+  associatedDomain: config.associatedDomain,
   rpName: 'CoilWallet',
   timeout: 60000, // 60 seconds
   userVerification: 'required' as const,

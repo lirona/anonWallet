@@ -1,50 +1,188 @@
-# Welcome to your Expo app 👋
+# anonWallet
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native wallet application built with Expo, featuring Account Abstraction (ERC-4337) and WebAuthn-based authentication using Passkeys. Users can create smart contract wallets secured by biometric authentication without managing private keys directly.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Account Abstraction (ERC-4337)**: Smart contract wallets with gas sponsorship via Pimlico
+- **Passkey Authentication**: Secure biometric login using WebAuthn/FIDO2 standards
+- **Cross-platform**: iOS and Android support via Expo
+- **Redux State Management**: Centralized app state with Redux Toolkit
+- **Environment Management**: Multiple deployment environments with dotenvx
 
-   ```bash
-   npm install
-   ```
+## Technology Stack
 
-2. Start the app
+- **Frontend**: React Native, Expo Router, TypeScript
+- **Blockchain**: viem, Account Abstraction (ERC-4337)
+- **Authentication**: WebAuthn/Passkeys, react-native-passkeys
+- **State Management**: Redux Toolkit
+- **Environment**: dotenvx for multi-environment configuration
 
-   ```bash
-   npx expo start
-   ```
+## Prerequisites
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+- Node.js 18+ and npm
+- Expo CLI (`npm install -g @expo/cli`)
+- iOS Simulator (Xcode) for iOS development
+- Android Studio for Android development
+- ngrok account for WebAuthn domain association
 ```bash
-npm run reset-project
+# macOS
+brew install ngrok
+
+# Or download from https://ngrok.com/download
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## API Keys Required
 
-## Learn more
+You'll need to obtain the following API keys:
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Alchemy (RPC Provider)
+1. Visit [Alchemy.com](https://alchemy.com) and create an account
+2. Generate an API key for Sepolia testnet
+3. Use in `EXPO_PUBLIC_RPC_URL`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 2. Pimlico (Account Abstraction)
+1. Visit [Pimlico.io](https://pimlico.io) and create an account
+2. Generate an API key for Sepolia testnet
+3. Use in `EXPO_PUBLIC_PIMLICO_API_KEY` (should start with `pim_`)
 
-## Join the community
+## ngrok Setup (Required for WebAuthn)
 
-Join our community of developers creating universal apps.
+WebAuthn requires a valid domain for associated domain verification. For local development, we use ngrok:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Visit [ngrok.com](https://ngrok.com) and sign up
+2. Get your auth token from [ngrok dashboard](https://dashboard.ngrok.com/get-started/your-authtoken)
+3. Configure ngrok:
+```bash
+ngrok config add-authtoken YOUR_AUTH_TOKEN
+```
+4. Go to [ngrok dashboard > Domains](https://dashboard.ngrok.com/domains)
+5. Create a new domain (free tier allows 1 static domain)
+6. Note your domain (e.g., `your-app-12345.ngrok-free.app`)
+
+## Local Development Setup
+
+### 1. Clone and Install Dependencies
+```bash
+git clone <repository-url>
+cd anonWalletExpo
+npm install
+```
+
+### 2. Environment Configuration
+1. Copy the environment template:
+```bash
+cp .env.dev.example .env.dev
+```
+
+2. Fill in your API keys and configuration in `.env.dev`:
+```env
+EXPO_PUBLIC_ENV=development
+
+# Your Alchemy API key
+EXPO_PUBLIC_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your-api-key-here
+
+# Deploy factory contract or use existing - below is the Ethereum Sepolia testnet address of the factory contract
+EXPO_PUBLIC_FACTORY_CONTRACT_ADDRESS=0xDD0f9cB4Cf53d28b976C13e7ee4a169F841924c0
+
+# The private key of the relayer account - this account pays for gas before the user's wallet is deployed. This can be eliminated in the future.
+# Make sure this is funded with Sepolia ETH
+EXPO_PUBLIC_RELAYER_PRIVATE_KEY=0xYourPrivateKey
+
+# Your Pimlico API key
+EXPO_PUBLIC_PIMLICO_API_KEY=pim_your_api_key
+
+# iOS App ID
+EXPO_PUBLIC_APP_ID=demo.com.anonymous.anonWallet
+
+# Your ngrok domain
+EXPO_PUBLIC_ASSOCIATED_DOMAIN=your-ngrok-domain.app
+```
+
+### 3. Start the Associated Domain Server
+The WebAuthn flow requires a server to serve domain association files:
+
+```bash
+# In a separate terminal
+cd associated-domain-server
+npm install
+node server.js
+```
+
+### 4. Start ngrok
+Point ngrok to the associated domain server:
+
+```bash
+# In another terminal - use your reserved domain
+ngrok http 8080 --domain=your-app-12345.ngrok-free.app
+
+# Or without reserved domain (domain will change each time)
+ngrok http 8080
+```
+
+### 6. Run the Application
+
+For development:
+```bash
+# iOS
+npx expo prebuild && npm run ios
+## To see logs go to Device -> Shake -> Devtools in the top bar of the iOS Simulator
+
+# Android
+npx expo prebuild && npm run android
+```
+
+For production builds:
+```bash
+# iOS
+npm run ios:prod
+
+# Android
+npm run android:prod
+```
+
+## Project Structure
+
+```
+├── app/                    # Expo Router pages
+├── components/            # Reusable UI components
+├── config/               # Configuration files
+├── constants/            # App constants
+├── contracts/            # Smart contract ABIs
+├── hooks/                # Custom React hooks
+├── slices/               # Redux Toolkit slices
+├── types/                # TypeScript type definitions
+├── utils/                # Utility functions
+├── associated-domain-server/ # WebAuthn domain server
+└── polyfills.ts          # Required polyfills
+```
+
+## Troubleshooting
+
+### WebAuthn Issues
+- Ensure ngrok is running and accessible
+- Verify associated domains are correctly configured in Xcode
+- Check that the domain in `.env.dev` matches your ngrok domain
+
+### Build Issues
+- Run `npx expo doctor` to check for common issues
+- Ensure all environment variables are set
+- Try clearing Metro cache: `npx expo start --clear`
+
+### iOS Simulator Issues
+- Passkeys require iOS 16+ simulator or device
+
+### Common errors
+- `IOS: Biometrics must be enabled`
+  - In the iOS Simulator top bar, go to Features -> FaceID (Enrolled must be toggled on)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test on both iOS and Android
+5. Submit a pull request
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)

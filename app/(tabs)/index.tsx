@@ -11,18 +11,19 @@ import { fromBase64urlToBytes } from '@/utils/base64';
 import { FACTORY_ABI } from '@/contracts/abi/factory';
 import { getPasskeyCreationOptions } from '@/config/webauthn';
 import { executeUserOperation } from '@/utils/userOperationBuilder';
+import config from '@/utils/config';
 
 const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.EXPO_PUBLIC_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo'),
+  transport: http(config.rpcUrl),
 });
 
-const account = privateKeyToAccount(process.env.EXPO_PUBLIC_RELAYER_PRIVATE_KEY as Hex);
+const account = privateKeyToAccount(config.relayerPrivateKey as Hex);
 
 const walletClient = createWalletClient({
   account,
   chain: sepolia,
-  transport: http(process.env.EXPO_PUBLIC_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo'),
+  transport: http(config.rpcUrl),
 });
 
 export default function WalletCreationScreen() {
@@ -105,7 +106,7 @@ export default function WalletCreationScreen() {
 
       console.log('📋 Contract params:', { userId: contractUserId.toString(), publicKey: publicKeyArray });
 
-      const factoryAddress: Hex = process.env.EXPO_PUBLIC_FACTORY_CONTRACT_ADDRESS as Hex;
+      const factoryAddress: Hex = config.factoryContractAddress as Hex;
 
       const txHash: Hex = await walletClient.writeContract({
         address: factoryAddress,

@@ -17,31 +17,32 @@ import { get } from 'react-native-passkeys';
 import { FACTORY_ABI } from '@/contracts/abi/factory';
 import { ENTRY_POINT_ADDRESS, ENTRY_POINT_ABI } from '@/constants/entryPoint';
 import { type UserOperation, type UserOperationGasEstimate } from '@/types/userOperation';
+import config from '@/utils/config';
 
 // Pimlico bundler client
 const bundlerClient = createPublicClient({
   chain: sepolia,
-  transport: http(`https://api.pimlico.io/v1/sepolia/rpc?apikey=${process.env.EXPO_PUBLIC_PIMLICO_API_KEY}`),
+  transport: http(`https://api.pimlico.io/v1/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
 });
 
 // Regular clients
 const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.EXPO_PUBLIC_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo'),
+  transport: http(config.rpcUrl),
 });
 
-const account = privateKeyToAccount(process.env.EXPO_PUBLIC_RELAYER_PRIVATE_KEY as Hex);
+const account = privateKeyToAccount(config.relayerPrivateKey as Hex);
 const walletClient = createWalletClient({
   account,
   chain: sepolia,
-  transport: http(process.env.EXPO_PUBLIC_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo'),
+  transport: http(config.rpcUrl),
 });
 
 /**
  * Get smart wallet address using factory's getAddress function
  */
 export async function getSmartWalletAddress(publicKey: readonly [Hex, Hex]): Promise<Hex> {
-  const factoryAddress: Hex = process.env.EXPO_PUBLIC_FACTORY_CONTRACT_ADDRESS as Hex;
+  const factoryAddress: Hex = config.factoryContractAddress as Hex;
 
   const address: Hex = await publicClient.readContract({
     address: factoryAddress,
@@ -79,7 +80,7 @@ export async function getNonce(walletAddress: Hex): Promise<bigint> {
  * Generate initCode for wallet deployment
  */
 export function generateInitCode(publicKey: readonly [Hex, Hex]): Hex {
-  const factoryAddress: Hex = process.env.EXPO_PUBLIC_FACTORY_CONTRACT_ADDRESS as Hex;
+  const factoryAddress: Hex = config.factoryContractAddress as Hex;
 
   const callData: Hex = encodeFunctionData({
     abi: FACTORY_ABI,
