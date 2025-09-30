@@ -65,7 +65,7 @@ ngrok config add-authtoken YOUR_AUTH_TOKEN
 ### 1. Clone and Install Dependencies
 ```bash
 git clone <repository-url>
-cd anonWalletExpo
+cd anonWallet
 npm install
 ```
 
