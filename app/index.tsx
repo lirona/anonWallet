@@ -1,142 +1,119 @@
 import { router } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { DataPersistKeys, useDataPersist } from '@/hooks/useDataPersist';
+import { smartWalletService, webAuthnService } from '@/services';
+import { useAppSlice } from '@/slices';
 import { colors } from '@/theme/colors';
-
-// Wallet creation logic commented out for now
-/*
-import { create } from 'react-native-passkeys';
-import { createPublicClient, createWalletClient, http, keccak256, toHex, parseEther, type Hex } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
-import { fromBase64urlToBytes } from '@/utils/base64';
-import { FACTORY_ABI } from '@/contracts/abi/factory';
-import { getPasskeyCreationOptions } from '@/config/webauthn';
-import { executeUserOperation } from '@/utils/userOperationBuilder';
 import config from '@/utils/config';
 
-const publicClient = createPublicClient({
-  chain: sepolia,
-  transport: http(config.rpcUrl),
-});
-
-const account = privateKeyToAccount(config.relayerPrivateKey as Hex);
-
-const walletClient = createWalletClient({
-  account,
-  chain: sepolia,
-  transport: http(config.rpcUrl),
-});
-*/
-
 export default function WalletCreationScreen() {
-  const handleCreateWallet = () => {
-    // Navigate to wallet home screen
-    router.push('/wallet-home')
-  };
+  const { dispatch, setUser, setLoggedIn } = useAppSlice();
+  const { setPersistData } = useDataPersist();
+  const [isCreating, setIsCreating] = useState(false);
+  const [progressText, setProgressText] = useState('');
 
-  /* Wallet creation logic commented out - will be re-enabled later
   const handleCreateWallet = async () => {
-    if (!walletName.trim()) {
-      Alert.alert('Error', 'Please enter a wallet name');
+    // TODO: REMOVE THIS TEMPORARY HARDCODED WALLET LOGIC WHEN PASSKEYS ARE WORKING
+    // This is a temporary workaround to test the rest of the app while passkeys are being debugged
+    if (config.hardcodedUserWallet) {
+      setIsCreating(true);
+      setProgressText('Using test wallet...');
+
+      try {
+        // Use hardcoded wallet address for testing
+        const userData = {
+          passkeyRawId: 'test-passkey-id', // Dummy value
+          walletAddress: config.hardcodedUserWallet,
+        };
+
+        await setPersistData(DataPersistKeys.USER, userData);
+        dispatch(setUser(userData));
+        dispatch(setLoggedIn(true));
+
+        console.log('🧪 Using hardcoded test wallet:', config.hardcodedUserWallet);
+        router.push('/wallet-home');
+      } catch (error) {
+        Alert.alert('Error', `Failed to set up test wallet: ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        setIsCreating(false);
+        setProgressText('');
+      }
       return;
     }
 
+    // TODO: UNCOMMENT THIS WHEN PASSKEYS ARE WORKING ON ANDROID
+    /*
     setIsCreating(true);
 
     try {
-      const challenge = btoa('random-challenge-' + Date.now()).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-      const userId = btoa('user-' + Date.now()).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      // 1. Create passkey
+      setProgressText('Creating passkey...');
+      console.log('🔐 Step 1: Creating passkey...');
+      const { publicKey, rawId } = await webAuthnService.createPasskey('My Wallet');
+      console.log('✅ Passkey created');
 
-      const creationOptions = getPasskeyCreationOptions(walletName, challenge, userId);
-      const result = await create(creationOptions);
+      // 2. Calculate wallet address (before deployment)
+      setProgressText('Calculating wallet address...');
+      console.log('🧮 Step 2: Calculating wallet address...');
+      const walletAddress = await smartWalletService.getWalletAddress(publicKey);
+      console.log('✅ Wallet address:', walletAddress);
 
-      if (!result) {
-        throw new Error('Passkey creation was cancelled or failed');
-      }
+      // 3. Fund wallet with 0.01 ETH (must fund BEFORE deployment since user pays gas)
+      setProgressText('Funding wallet...');
+      console.log('💰 Step 3: Funding wallet with 0.01 ETH...');
+      await smartWalletService.fundWallet(walletAddress, '0.01');
+      console.log('✅ Wallet funded');
 
-      const rawIdBytes: Uint8Array = fromBase64urlToBytes(result.rawId);
-      const rawIdHex: Hex = toHex(rawIdBytes);
+      // 4. Deploy wallet via UserOp (user pays for gas)
+      setProgressText('Deploying wallet...');
+      console.log('🏗️ Step 4: Deploying wallet via UserOp...');
+      await smartWalletService.deployWallet(publicKey, rawId);
+      console.log('✅ Wallet deployed');
 
-      const publicKeyBase64: string | undefined = result.response.getPublicKey?.();
-      if (!publicKeyBase64) {
-        throw new Error('No public key received from passkey');
-      }
+      // Wait for deployment to be mined
+      setProgressText('Waiting for deployment...');
+      console.log('⏳ Waiting 15 seconds for deployment to be mined...');
+      await new Promise(resolve => setTimeout(resolve, 15000));
 
-      const publicKeyBytes: Uint8Array = fromBase64urlToBytes(publicKeyBase64);
+      // 5. Test transfer: Send 0.001 ETH to test address
+      setProgressText('Testing transaction...');
+      console.log('🧪 Step 5: Sending test transaction (0.001 ETH)...');
+      await smartWalletService.sendTokens(
+        '0x0E1774FD4f836E6Ba2E22d0e11F4c69684ae4EB7',
+        '0.001',
+        rawId,
+        walletAddress
+      );
+      console.log('✅ Test transaction completed');
 
-      if (publicKeyBytes.length !== 64) {
-        throw new Error(`Invalid public key length: expected 64 bytes, got ${publicKeyBytes.length}`);
-      }
+      // 6. Save to AsyncStorage
+      const userData = {
+        passkeyRawId: rawId,
+        walletAddress,
+      };
+      await setPersistData(DataPersistKeys.USER, userData);
 
-      const xBytes: Uint8Array = publicKeyBytes.slice(0, 32) as Uint8Array;
-      const yBytes: Uint8Array = publicKeyBytes.slice(32, 64) as Uint8Array;
-      const x: Hex = toHex(xBytes);
-      const y: Hex = toHex(yBytes);
-      const rawIdHash: Hex = keccak256(rawIdBytes);
+      // 7. Update Redux
+      dispatch(setUser(userData));
+      dispatch(setLoggedIn(true));
 
-      const contractUserId: bigint = BigInt(rawIdHash);
-      const publicKeyArray: readonly [Hex, Hex] = [x, y] as const;
-      const factoryAddress: Hex = config.factoryContractAddress as Hex;
-
-      const txHash: Hex = await walletClient.writeContract({
-        address: factoryAddress,
-        abi: FACTORY_ABI,
-        functionName: 'saveUser',
-        args: [contractUserId, publicKeyArray],
-      });
-
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: txHash,
-        timeout: 60_000
-      });
-
-      const userData = await publicClient.readContract({
-        address: factoryAddress,
-        abi: FACTORY_ABI,
-        functionName: 'getUser',
-        args: [contractUserId],
-      });
-
-      const userAddress: Hex = userData.account as Hex;
-      const transferAmount: bigint = parseEther('0.001');
-
-      const transferTxHash: Hex = await walletClient.sendTransaction({
-        to: userAddress,
-        value: transferAmount,
-      });
-
-      const transferReceipt = await publicClient.waitForTransactionReceipt({
-        hash: transferTxHash,
-        timeout: 60_000
-      });
-
-      let userOpHash: Hex | null = null;
-
-      try {
-        userOpHash = await executeUserOperation(
-          publicKeyArray,
-          account.address,
-          result.rawId
-        );
-      } catch (userOpError) {
-        console.error('❌ UserOperation failed:', userOpError);
-      }
-
-      const successMessage = userOpHash
-        ? `Wallet "${walletName}" created successfully!\n\nUser Address: ${userAddress.slice(0, 10)}...\nSaveUser Tx: ${txHash.slice(0, 10)}...\nTransfer Tx: ${transferTxHash.slice(0, 10)}...\nUserOp Hash: ${userOpHash.slice(0, 10)}...\n💰 Funded with 0.001 ETH\n🔄 Sent 0.0001 ETH back via UserOp`
-        : `Wallet "${walletName}" created successfully!\n\nUser Address: ${userAddress.slice(0, 10)}...\nSaveUser Tx: ${txHash.slice(0, 10)}...\nTransfer Tx: ${transferTxHash.slice(0, 10)}...\n💰 Funded with 0.001 ETH\n⚠️ UserOp failed (check logs)`;
-
-      Alert.alert('Success', successMessage);
+      // 8. Navigate to wallet home
+      router.push('/wallet-home');
+      console.log('🎉 Wallet creation complete!');
     } catch (error) {
-      console.error('Error creating passkey:', error);
-      Alert.alert('Error', `Failed to create passkey: ${error}`);
+      console.error('❌ Wallet creation failed:', error);
+      Alert.alert(
+        'Error',
+        `Failed to create wallet: ${error instanceof Error ? error.message : String(error)}`
+      );
     } finally {
       setIsCreating(false);
+      setProgressText('');
     }
+    */
   };
-  */
 
   return (
     <View style={styles.container}>
@@ -150,11 +127,19 @@ export default function WalletCreationScreen() {
         </Text>
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, isCreating && styles.buttonDisabled]}
           onPress={handleCreateWallet}
           activeOpacity={0.8}
+          disabled={isCreating}
         >
-          <Text style={styles.buttonText}>Create Wallet</Text>
+          {isCreating ? (
+            <View style={styles.buttonContent}>
+              <ActivityIndicator size="small" color={colors.white} />
+              <Text style={styles.buttonText}>{progressText}</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Create Wallet</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -190,7 +175,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textGray,
+    color: colors.textSecondary,
     marginBottom: 48,
     textAlign: 'center',
     lineHeight: 24,
@@ -198,10 +183,18 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 56,
-    backgroundColor: colors.orange,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   buttonText: {
     color: colors.white,

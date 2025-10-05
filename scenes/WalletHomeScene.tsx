@@ -1,11 +1,16 @@
 import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import ActionButton from '@/components/elements/ActionButton';
+import QRScannerModal from '@/components/elements/QRScannerModal';
 import TransactionItem from '@/components/elements/TransactionItem';
 import { colors } from '@/theme/colors';
 import type { Transaction } from '@/types/Transaction';
+import { useAppSlice } from '@/slices';
+import { useDataPersist, DataPersistKeys } from '@/hooks/useDataPersist';
 
 // Hardcoded data as per requirements
 const BALANCE = 1234.56;
@@ -74,26 +79,104 @@ const TRANSACTIONS: Transaction[] = [
 ];
 
 function WalletHomeScene() {
+  const { dispatch, reset } = useAppSlice();
+  const { removePersistData } = useDataPersist();
+  const [showScannerModal, setShowScannerModal] = React.useState(false);
+
   const handleScanQR = () => {
-    // TODO: Implement QR scanning
+    setShowScannerModal(true);
+  };
+
+  const handleQRScanned = (data: string) => {
+    console.log('Scanned QR code:', data);
+
+    try {
+      // Parse the payment link URL
+      const url = new URL(data);
+      const recipient = url.searchParams.get('recipient');
+      const amount = url.searchParams.get('amount');
+      const chainId = url.searchParams.get('chainId');
+
+      // Navigate to send screen with parsed params
+      router.push({
+        pathname: '/send',
+        params: {
+          recipient: recipient || '',
+          amount: amount || '',
+          chainId: chainId || '',
+        },
+      });
+    } catch (error) {
+      // Not a valid URL or payment link
+      console.error('Invalid QR code format:', error);
+      // TODO: Show error toast to user
+    }
   };
 
   const handleReceive = () => {
-    // TODO: Implement receive functionality
+    router.push('/receive');
   };
 
   const handleRedeem = () => {
-    // TODO: Implement redeem functionality
+    router.push('/redeem');
+  };
+
+  const handleSend = () => {
+    // Navigate to send screen with hardcoded test values
+    router.push({
+      pathname: '/send',
+      params: {
+        recipient: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+        amount: '10.50',
+        chainId: '11155111',
+      },
+    });
+  };
+
+  const handleNotifications = () => {
+    // TODO: Implement notifications
+  };
+
+  const handleSettings = () => {
+    // TODO: Implement settings
+  };
+
+  const handleLogout = async () => {
+    // Clear persisted user data
+    await removePersistData(DataPersistKeys.USER);
+
+    // Reset Redux state
+    dispatch(reset());
+
+    // Navigate back to landing screen
+    router.replace('/');
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* QR Scanner Modal */}
+      <QRScannerModal
+        visible={showScannerModal}
+        onClose={() => setShowScannerModal(false)}
+        onScan={handleQRScanned}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>ANON</Text>
+        <Text style={styles.logo}>COIL</Text>
         <View style={styles.headerIcons}>
-          <Text style={styles.headerIcon}>🔔</Text>
-          <Text style={styles.headerIcon}>⚙️</Text>
+          <TouchableOpacity onPress={handleSend}>
+            <MaterialIcons name="send" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleNotifications}>
+            <MaterialIcons name="notifications" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout}>
+            <MaterialIcons name="logout" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSettings}>
+            <MaterialIcons name="settings" size={24} color={colors.white} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -110,9 +193,9 @@ function WalletHomeScene() {
 
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
-        <ActionButton icon="📷" label="Scan QR" onPress={handleScanQR} />
-        <ActionButton icon="↓" label="Receive" onPress={handleReceive} />
-        <ActionButton icon="🎁" label="Redeem" onPress={handleRedeem} variant="primary" />
+        <ActionButton icon="qr-code-scanner" label="Scan QR" onPress={handleScanQR} shape="square" />
+        <ActionButton icon="call-received" label="Receive" onPress={handleReceive} shape="square" />
+        <ActionButton icon="redeem" label="Redeem" onPress={handleRedeem} variant="primary" shape="square" />
       </View>
 
       {/* Transactions Section */}
@@ -151,9 +234,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
   },
-  headerIcon: {
-    fontSize: 22,
-  },
   balanceSection: {
     alignItems: 'center',
     paddingVertical: 32,
@@ -166,7 +246,7 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 16,
-    color: colors.textGray,
+    color: colors.textTertiary,
   },
   actionsContainer: {
     flexDirection: 'row',

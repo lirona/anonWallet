@@ -23,13 +23,39 @@ A React Native wallet application built with Expo, featuring Account Abstraction
 - Node.js 18+ and npm
 - Expo CLI (`npm install -g @expo/cli`)
 - iOS Simulator (Xcode) for iOS development
-- Android Studio for Android development
+- Android Studio and Android SDK for Android development
 - ngrok account for WebAuthn domain association
 ```bash
 # macOS
 brew install ngrok
 
 # Or download from https://ngrok.com/download
+```
+
+### Android SDK Setup
+For Android development, you need to set the Android SDK location and add tools to PATH:
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+export ANDROID_HOME=$HOME/Library/Android/sdk  # macOS
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+
+# Linux
+# export ANDROID_HOME=$HOME/Android/Sdk
+# export PATH=$PATH:$ANDROID_HOME/platform-tools
+
+# Windows (CMD)
+# set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
+# set PATH=%PATH%;%ANDROID_HOME%\platform-tools
+
+# Windows (PowerShell)
+# $env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"
+# $env:PATH="$env:PATH;$env:ANDROID_HOME\platform-tools"
+```
+
+After adding, reload your shell:
+```bash
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
 ## API Keys Required
@@ -125,11 +151,11 @@ ngrok http 8080
 For development:
 ```bash
 # iOS
-npx expo prebuild && npm run ios
+npm run prebuild && npm run ios
 ## To see logs go to Device -> Shake -> Devtools in the top bar of the iOS Simulator
 
 # Android
-npx expo prebuild && npm run android
+npm run prebuild && npm run android
 ```
 
 For production builds:

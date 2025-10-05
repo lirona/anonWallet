@@ -25,7 +25,20 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.CoilWalletExpo"
+      "package": "com.anonymous.CoilWalletExpo",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "rosita-geoponic-dwain.ngrok-free.app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -49,11 +62,18 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "15.1" // Fully supports passkeys
           },
           "android": {
-            "compileSdkVersion": 34
+            "minSdkVersion": 28 // Android 9.0 - first version supporting passkeys
           }
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your Camera to scan QR codes.",
+          "enableCodeScanner": true
         }
       ]
     ],
