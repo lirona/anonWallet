@@ -1,13 +1,23 @@
 export const colors = {
-    background: '#2C3541',        // Main dark blue-gray background
-    secondary: '#3A4551',         // Slightly lighter for cards/sections
-    bronze: '#6B5D4F',            // Bronze/brown for secondary buttons
-    orange: '#E89B6B',            // Orange for primary CTA (Redeem)
-    green: '#4CAF50',             // Success/Received transactions
-    red: '#E57373',               // Error/Sent transactions
-    textGray: '#B0B8C1',          // Subtle text and labels
-    white: '#ffffff',             // White text
-    greenDark: '#2E5A3E',         // Dark green for received icon bg
-    redDark: '#5A2E2E',           // Dark red for sent icon bg
-    transparent: 'transparent',   // Transparent
-  };
+  primary: '#E78123',              // Orange primary CTA
+  primaryLight: '#E7812333',       // Primary 20% opacity for buttons
+  primaryDark: '#E781234D',        // Primary 30% opacity (dark mode)
+
+  background: '#1C2A3A',           // Dark mode background
+  backgroundLight: '#F8F7F6',      // Light mode background
+  cardBackground: '#FFFFFF0D',     // Card background (white 5%)
+  cardBackgroundDark: '#0000001A', // Card background dark (black 10%)
+
+  white: '#FFFFFF',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#FFFFFF99',      // White 60% opacity
+  textTertiary: '#FFFFFF66',       // White 40% opacity
+
+  green: '#4ADE80',                // Success/Received (green-400)
+  greenBackground: '#22C55E33',    // Green 20% opacity
+  red: '#F87171',                  // Error/Sent (red-400)
+  redBackground: '#EF444433',      // Red 20% opacity
+
+  // Utility
+  transparent: 'transparent',
+};

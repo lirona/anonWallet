@@ -1,7 +1,4 @@
 export interface User {
-  id: string;
-  walletAddress?: string;
-  passkeysEnabled: boolean;
-  createdAt: Date;
-  lastLoginAt?: Date;
+  passkeyRawId: string; // base64Url encoded
+  walletAddress: string;
 }

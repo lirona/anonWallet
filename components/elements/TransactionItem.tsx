@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { colors } from '@/theme/colors';
 import type { Transaction } from '@/types/Transaction';
@@ -10,15 +11,15 @@ interface TransactionItemProps {
 
 function TransactionItem({ transaction }: TransactionItemProps) {
   const isReceived = transaction.type === 'received';
-  const iconBgColor = isReceived ? colors.greenDark : colors.redDark;
+  const iconBgColor = isReceived ? colors.greenBackground : colors.redBackground;
   const amountColor = isReceived ? colors.green : colors.red;
   const amountPrefix = isReceived ? '+' : '-';
-  const icon = isReceived ? '↓' : '↗';
+  const iconName = isReceived ? 'south-west' : 'north-east';
 
   return (
     <View style={styles.container}>
       <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
-        <Text style={styles.icon}>{icon}</Text>
+        <MaterialIcons name={iconName} size={24} color={amountColor} />
       </View>
 
       <View style={styles.info}>
@@ -39,20 +40,21 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginHorizontal: 8,
+    marginVertical: 6,
+    backgroundColor: colors.cardBackgroundDark,
+    borderRadius: 8,
   },
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  icon: {
-    fontSize: 20,
-    color: colors.white,
+    overflow: 'hidden',
   },
   info: {
     flex: 1,
@@ -65,7 +67,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 13,
-    color: colors.textGray,
+    color: colors.textSecondary,
   },
   amount: {
     fontSize: 18,
