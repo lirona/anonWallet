@@ -42,3 +42,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# generated libraries
+/contracts/lib
+/contracts/out
+/contracts/cache
+
