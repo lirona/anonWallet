@@ -33,6 +33,7 @@ yarn-error.*
 # environment files (keep only .example files)
 .env.dev
 .env.production
+contracts/.env
 
 # typescript
 *.tsbuildinfo
@@ -47,4 +48,6 @@ app-example
 /contracts/lib
 /contracts/out
 /contracts/cache
+/contracts/broadcast
+
 
