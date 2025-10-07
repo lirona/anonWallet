@@ -6,7 +6,6 @@ import { DataPersistKeys, useDataPersist } from '@/hooks/useDataPersist';
 import { smartWalletService, webAuthnService } from '@/services';
 import { useAppSlice } from '@/slices';
 import { colors } from '@/theme/colors';
-import config from '@/utils/config';
 
 export default function WalletCreationScreen() {
   const { dispatch, setUser, setLoggedIn } = useAppSlice();
@@ -15,36 +14,6 @@ export default function WalletCreationScreen() {
   const [progressText, setProgressText] = useState('');
 
   const handleCreateWallet = async () => {
-    // TODO: REMOVE THIS TEMPORARY HARDCODED WALLET LOGIC WHEN PASSKEYS ARE WORKING
-    // This is a temporary workaround to test the rest of the app while passkeys are being debugged
-    if (config.hardcodedUserWallet) {
-      setIsCreating(true);
-      setProgressText('Using test wallet...');
-
-      try {
-        // Use hardcoded wallet address for testing
-        const userData = {
-          passkeyRawId: 'test-passkey-id', // Dummy value
-          walletAddress: config.hardcodedUserWallet,
-        };
-
-        await setPersistData(DataPersistKeys.USER, userData);
-        dispatch(setUser(userData));
-        dispatch(setLoggedIn(true));
-
-        console.log('🧪 Using hardcoded test wallet:', config.hardcodedUserWallet);
-        router.push('/wallet-home');
-      } catch (error) {
-        Alert.alert('Error', `Failed to set up test wallet: ${error instanceof Error ? error.message : String(error)}`);
-      } finally {
-        setIsCreating(false);
-        setProgressText('');
-      }
-      return;
-    }
-
-    // TODO: UNCOMMENT THIS WHEN PASSKEYS ARE WORKING ON ANDROID
-    /*
     setIsCreating(true);
 
     try {
@@ -63,7 +32,7 @@ export default function WalletCreationScreen() {
       // 3. Fund wallet with 0.01 ETH (must fund BEFORE deployment since user pays gas)
       setProgressText('Funding wallet...');
       console.log('💰 Step 3: Funding wallet with 0.01 ETH...');
-      await smartWalletService.fundWallet(walletAddress, '0.01');
+      await smartWalletService.fundWallet(walletAddress, '0.001');
       console.log('✅ Wallet funded');
 
       // 4. Deploy wallet via UserOp (user pays for gas)
@@ -112,8 +81,7 @@ export default function WalletCreationScreen() {
       setIsCreating(false);
       setProgressText('');
     }
-    */
-  };
+  }
 
   return (
     <View style={styles.container}>

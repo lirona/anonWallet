@@ -146,6 +146,34 @@ ngrok http 8080 --domain=your-app-12345.ngrok-free.app
 ngrok http 8080
 ```
 
+### 5. Configure Emulator/Simulator for Passkeys
+
+#### iOS Simulator Setup
+1. **Enable Face ID/Touch ID:**
+   - In iOS Simulator menu bar: **Features** → **Face ID** → **Enrolled** (toggle ON)
+   - During passkey prompt, use: **Features** → **Face ID** → **Matching Face** to authenticate
+
+#### Android Emulator Setup (Required)
+
+**⚠️ CRITICAL:** Passkeys on Android require proper emulator configuration. Without these steps, passkeys will silently fail to save.
+
+1. **Sign in with Google Account:**
+   - Open emulator
+   - Go to **Settings** → **Passwords & accounts** → **Add account** → **Google**
+   - Sign in with your Google account (required for Google Password Manager)
+
+2. **Enable Biometric Authentication (Recommended):**
+   - Go to **Settings** → **Security** → **Fingerprint**
+   - The wizard will prompt you to set a **PIN** or **Password** first if not already set
+   - Set a PIN (pattern/swipe not sufficient for passkeys)
+   - Complete fingerprint enrollment (use mouse clicks to simulate fingerprints)
+   - During passkey authentication, you can use the fingerprint sensor overlay or enter PIN
+
+**Common Android Emulator Issues:**
+- **"Sign in another way" error:** Google account not signed in or device PIN not set
+- **Passkey not saved:** Missing device PIN or incomplete authenticator selection in code
+- **No biometric prompt:** Fingerprint not enrolled (PIN will be used as fallback)
+
 ### 6. Run the Application
 
 For development:
@@ -154,7 +182,7 @@ For development:
 npm run prebuild && npm run ios
 ## To see logs go to Device -> Shake -> Devtools in the top bar of the iOS Simulator
 
-# Android
+# Android (make sure ANDROID_HOME is in PATH)
 npm run prebuild && npm run android
 ```
 

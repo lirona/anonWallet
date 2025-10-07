@@ -1,10 +1,9 @@
 import { type Hex, parseEther, toHex, encodeAbiParameters, encodePacked } from 'viem';
-import { get } from 'react-native-passkeys';
 import { p256 } from '@noble/curves/nist.js';
 import { fromBase64urlToBytes } from '@/utils/base64';
 
 import { type UserOperation } from '@/types/userOperation';
-import { getPasskeyAuthenticationOptions } from '@/config/webauthn';
+import { webAuthnService } from '@/services/webauthn/WebAuthnService';
 import {
   getSmartWalletAddress,
   isWalletDeployed,
@@ -234,11 +233,9 @@ export async function signAndSubmitUserOperation(
 
   // 3. Sign with WebAuthn using existing credential
   console.log('🔐 Preparing WebAuthn authentication...');
-  const authOptions = getPasskeyAuthenticationOptions(challenge, rawIdBase64url);
-  console.log('📋 WebAuthn auth options:', authOptions);
-
   console.log('🔐 Prompting user to sign with passkey...');
-  const assertion = await get(authOptions);
+
+  const assertion = await webAuthnService.signChallenge(challenge, rawIdBase64url);
 
   if (!assertion) {
     console.error('❌ WebAuthn assertion failed or was cancelled');

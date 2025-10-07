@@ -1,5 +1,6 @@
-import { create, get, isSupported } from 'react-native-passkeys';
-import { type Hex, toHex, keccak256 } from 'viem';
+import { Passkey } from 'react-native-passkey';
+import { type Hex, toHex } from 'viem';
+import * as CBOR from 'cbor-js';
 
 import { fromBase64urlToBytes } from '@/utils/base64';
 import { getPasskeyCreationOptions, getPasskeyAuthenticationOptions } from '@/config/webauthn';
@@ -7,6 +8,39 @@ import { getPasskeyCreationOptions, getPasskeyAuthenticationOptions } from '@/co
 export interface PasskeyResult {
   publicKey: readonly [Hex, Hex];
   rawId: string; // base64Url encoded
+}
+
+/**
+ * Extract public key coordinates from WebAuthn attestationObject
+ * @param attestationObjectB64 - Base64url-encoded attestationObject
+ * @returns [x, y] coordinates as hex strings
+ */
+function extractPublicKeyFromAttestation(attestationObjectB64: string): readonly [Hex, Hex] {
+  // Decode base64url → bytes
+  const attestationBytes = fromBase64urlToBytes(attestationObjectB64);
+
+  // Parse CBOR attestationObject
+  const attestation = CBOR.decode(attestationBytes.buffer);
+  const authData = new Uint8Array(attestation.authData);
+
+  // AuthData structure:
+  // rpIdHash(32) + flags(1) + signCount(4) + aaguid(16) + credIdLen(2) + credId(n) + publicKey(CBOR)
+  let offset = 37; // Skip rpIdHash + flags + signCount
+  offset += 16; // Skip aaguid
+
+  // Read credential ID length (big-endian uint16)
+  const credIdLen = (authData[offset] << 8) | authData[offset + 1];
+  offset += 2 + credIdLen; // Skip credId length + credId
+
+  // Extract and parse COSE public key
+  const coseKeyBytes = authData.slice(offset);
+  const coseKey = CBOR.decode(coseKeyBytes.buffer);
+
+  // COSE key map: -2 = x-coordinate, -3 = y-coordinate
+  const x: Hex = toHex(new Uint8Array(coseKey[-2]));
+  const y: Hex = toHex(new Uint8Array(coseKey[-3]));
+
+  return [x, y] as const;
 }
 
 /**
@@ -18,9 +52,9 @@ class WebAuthnService {
    * Check if passkeys are supported on this device
    * @returns true if passkeys are supported
    */
-  async checkSupport(): Promise<boolean> {
+  checkSupport(): boolean {
     try {
-      const supported = await isSupported();
+      const supported = Passkey.isSupported();
       console.log('🔍 Passkey support:', supported);
       return supported;
     } catch (error) {
@@ -38,7 +72,7 @@ class WebAuthnService {
     console.log('🔐 Creating passkey for wallet:', walletName);
 
     // Check if passkeys are supported
-    const supported = await this.checkSupport();
+    const supported = this.checkSupport();
     if (!supported) {
       throw new Error('Passkeys are not supported on this device. Requires Android 9+ or iOS 15+');
     }
@@ -62,9 +96,11 @@ class WebAuthnService {
     // 2. Get creation options
     const creationOptions = getPasskeyCreationOptions(walletName, challenge, userId);
 
+    console.log('📋 Creation options:', JSON.stringify(creationOptions, null, 2));
+
     // 3. Create passkey
     console.log('🔐 Prompting user to create passkey...');
-    const result = await create(creationOptions);
+    const result = await Passkey.create(creationOptions);
 
     if (!result) {
       throw new Error('Passkey creation was cancelled or failed');
@@ -76,23 +112,8 @@ class WebAuthnService {
       type: result.type,
     });
 
-    // 4. Extract public key
-    const publicKeyBase64 = result.response.getPublicKey?.();
-    if (!publicKeyBase64) {
-      throw new Error('No public key received from passkey');
-    }
-
-    const publicKeyBytes = fromBase64urlToBytes(publicKeyBase64);
-
-    if (publicKeyBytes.length !== 64) {
-      throw new Error(`Invalid public key length: expected 64 bytes, got ${publicKeyBytes.length}`);
-    }
-
-    // 5. Extract x and y coordinates
-    const xBytes = publicKeyBytes.slice(0, 32) as Uint8Array;
-    const yBytes = publicKeyBytes.slice(32, 64) as Uint8Array;
-    const x: Hex = toHex(xBytes);
-    const y: Hex = toHex(yBytes);
+    // 4. Extract public key from attestationObject
+    const [x, y] = extractPublicKeyFromAttestation(result.response.attestationObject);
 
     console.log('🔑 Public key extracted:', {
       x: x.substring(0, 20) + '...',
@@ -117,12 +138,13 @@ class WebAuthnService {
       rawId: rawId.substring(0, 20) + '...',
     });
 
-    // Get authentication options
     const authOptions = getPasskeyAuthenticationOptions(challenge, rawId);
+
+    console.log('📋 Authentication options:', JSON.stringify(authOptions, null, 2));
 
     // Prompt user to sign
     console.log('🔐 Prompting user to sign with passkey...');
-    const assertion = await get(authOptions);
+    const assertion = await Passkey.get(authOptions);
 
     if (!assertion) {
       throw new Error('WebAuthn assertion failed or was cancelled');

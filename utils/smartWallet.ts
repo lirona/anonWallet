@@ -12,7 +12,6 @@ import {
 } from 'viem';
 import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { get } from 'react-native-passkeys';
 
 import { FACTORY_ABI } from '@/contracts/abi/factory';
 import { ENTRY_POINT_ADDRESS, ENTRY_POINT_ABI } from '@/constants/entryPoint';

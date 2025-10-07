@@ -8,6 +8,7 @@ import config from '@/utils/config';
 export const WEBAUTHN_CONFIG = {
   appId: config.appId,
   associatedDomain: config.associatedDomain,
+  origin: `https://${config.associatedDomain}`, // Android requires full origin URL
   rpName: 'CoilWallet',
   timeout: 60000, // 60 seconds
   userVerification: 'required' as const,
@@ -37,8 +38,11 @@ export function getPasskeyCreationOptions(walletName: string, challenge: string,
     attestation: 'none' as const,
     authenticatorSelection: {
       authenticatorAttachment: WEBAUTHN_CONFIG.authenticatorAttachment,
+      requireResidentKey: true,
+      residentKey: 'required' as const,
       userVerification: WEBAUTHN_CONFIG.userVerification,
     },
+    origin: WEBAUTHN_CONFIG.origin,
   };
 }
 
@@ -57,5 +61,6 @@ export function getPasskeyAuthenticationOptions(challenge: string, credentialId:
     ],
     userVerification: WEBAUTHN_CONFIG.userVerification,
     timeout: WEBAUTHN_CONFIG.timeout,
+    origin: WEBAUTHN_CONFIG.origin,
   };
 }
