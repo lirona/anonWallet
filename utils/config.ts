@@ -22,7 +22,7 @@ const config = {
   pimlicoApiKey: process.env.EXPO_PUBLIC_PIMLICO_API_KEY!,
 
   // WebAuthn configuration
-  appId: process.env.EXPO_PUBLIC_APP_ID!,
+  appId: process.env.EXPO_PUBLIC_BUNDLE_ID!,
   associatedDomain: process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN!,
 
   // TEMPORARY: Hardcoded wallet for testing while passkeys are being debugged

@@ -1,0 +1,89 @@
+// Environment variables are injected by dotenvx when running npm scripts
+const ASSOCIATED_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN;
+const BUNDLE_ID = process.env.EXPO_PUBLIC_BUNDLE_ID;
+
+module.exports = {
+  expo: {
+    name: "CoilWalletExpo",
+    slug: "CoilWalletExpo",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "coilwalletexpo",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: false,
+    ios: {
+      supportsTablet: true,
+      associatedDomains: [
+        `webcredentials:${ASSOCIATED_DOMAIN}`,
+        `applinks:${ASSOCIATED_DOMAIN}`
+      ],
+      bundleIdentifier: BUNDLE_ID
+    },
+    android: {
+      adaptiveIcon: {
+        backgroundColor: "#E6F4FE",
+        foregroundImage: "./assets/images/android-icon-foreground.png",
+        backgroundImage: "./assets/images/android-icon-background.png",
+        monochromeImage: "./assets/images/android-icon-monochrome.png"
+      },
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      package: BUNDLE_ID,
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "https",
+              host: ASSOCIATED_DOMAIN
+            }
+          ],
+          category: ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    web: {
+      output: "static",
+      favicon: "./assets/images/favicon.png"
+    },
+    plugins: [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/splash-icon.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#ffffff",
+          dark: {
+            backgroundColor: "#000000"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            deploymentTarget: "15.1" // Fully supports passkeys
+          },
+          android: {
+            minSdkVersion: 28 // Android 9.0 - first version supporting passkeys
+          }
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText: "$(PRODUCT_NAME) needs access to your Camera to scan QR codes.",
+          enableCodeScanner: true
+        }
+      ]
+    ],
+    experiments: {
+      typedRoutes: true,
+      reactCompiler: true
+    }
+  }
+};

@@ -119,7 +119,7 @@ EXPO_PUBLIC_RELAYER_PRIVATE_KEY=0xYourPrivateKey
 EXPO_PUBLIC_PIMLICO_API_KEY=pim_your_api_key
 
 # iOS App ID
-EXPO_PUBLIC_APP_ID=demo.com.anonymous.anonWallet
+EXPO_PUBLIC_BUNDLE_ID=demo.com.anonymous.anonWallet
 
 # Your ngrok domain
 EXPO_PUBLIC_ASSOCIATED_DOMAIN=your-ngrok-domain.app
@@ -131,8 +131,7 @@ The WebAuthn flow requires a server to serve domain association files:
 ```bash
 # In a separate terminal
 cd associated-domain-server
-npm install
-node server.js
+npm install && npm start
 ```
 
 ### 4. Start ngrok
@@ -162,17 +161,15 @@ ngrok http 8080
    - Go to **Settings** → **Passwords & accounts** → **Add account** → **Google**
    - Sign in with your Google account (required for Google Password Manager)
 
-2. **Enable Biometric Authentication (Recommended):**
-   - Go to **Settings** → **Security** → **Fingerprint**
-   - The wizard will prompt you to set a **PIN** or **Password** first if not already set
-   - Set a PIN (pattern/swipe not sufficient for passkeys)
-   - Complete fingerprint enrollment (use mouse clicks to simulate fingerprints)
-   - During passkey authentication, you can use the fingerprint sensor overlay or enter PIN
+2. **Set Device PIN/Password:**
+   - Go to **Settings** → **Security** → **Screen lock**
+   - Set a **PIN** or **Password** (swipe/pattern not sufficient)
+   - This is required for passkey storage on Android
 
-**Common Android Emulator Issues:**
-- **"Sign in another way" error:** Google account not signed in or device PIN not set
-- **Passkey not saved:** Missing device PIN or incomplete authenticator selection in code
-- **No biometric prompt:** Fingerprint not enrolled (PIN will be used as fallback)
+3. **Enable Biometric Authentication (Optional but Recommended):**
+   - Once PIN is set, go to **Settings** → **Security** → **Fingerprint**
+   - Follow enrollment wizard (you can use mouse clicks to simulate fingerprints)
+   - During passkey authentication, use the fingerprint sensor overlay or enter PIN
 
 ### 6. Run the Application
 
