@@ -1,4 +1,5 @@
 import app from '@/slices/app.slice';
+import token from '@/slices/token.slice';
 import { Env } from '@/types/env';
 import config from '@/utils/config';
 import { configureStore } from '@reduxjs/toolkit';
@@ -7,6 +8,7 @@ import logger from 'redux-logger';
 const store = configureStore({
   reducer: {
     app,
+    token,
     // add more store ...
   },
   middleware: getDefaultMiddleware =>
