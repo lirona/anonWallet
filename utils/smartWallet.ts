@@ -1,27 +1,29 @@
 import {
   createPublicClient,
   createWalletClient,
-  http,
-  type Hex,
-  type PublicClient,
-  type WalletClient,
   encodeFunctionData,
-  parseEther,
-  parseGwei,
-  keccak256
+  http,
+  toHex,
+  type Hex
 } from 'viem';
-import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
 
+import { ENTRY_POINT_ABI, ENTRY_POINT_ADDRESS } from '@/constants/entryPoint';
 import { FACTORY_ABI } from '@/contracts/abi/factory';
-import { ENTRY_POINT_ADDRESS, ENTRY_POINT_ABI } from '@/constants/entryPoint';
-import { type UserOperation, type UserOperationGasEstimate } from '@/types/userOperation';
+import { type UserOperation } from '@/types/userOperation';
 import config from '@/utils/config';
 
-// Pimlico bundler client
+// Pimlico bundler client (v1 - for submitting user operations)
 const bundlerClient = createPublicClient({
   chain: sepolia,
   transport: http(`https://api.pimlico.io/v1/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
+});
+
+// Pimlico paymaster client (v2 - for sponsorship requests)
+const paymasterClient = createPublicClient({
+  chain: sepolia,
+  transport: http(`https://api.pimlico.io/v2/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
 });
 
 // Regular clients
@@ -117,41 +119,46 @@ export function generateTransferCallData(to: Hex, amount: bigint): Hex {
 }
 
 /**
- * Estimate UserOperation gas using Pimlico
+ * Get sponsored transaction gas estimates and paymaster data from Pimlico
+ * Returns hex values directly from paymaster (no conversion to bigint)
+ * Pure function that returns only the sponsorship-related fields
  */
-export async function estimateUserOperationGas(userOp: UserOperation): Promise<UserOperationGasEstimate> {
-  // Convert UserOperation to hex format for RPC call
-  const userOpHex = {
-    sender: userOp.sender,
-    nonce: `0x${userOp.nonce.toString(16)}` as Hex,
-    initCode: userOp.initCode,
-    callData: userOp.callData,
-    callGasLimit: `0x${userOp.callGasLimit.toString(16)}` as Hex,
-    verificationGasLimit: `0x${userOp.verificationGasLimit.toString(16)}` as Hex,
-    preVerificationGas: `0x${userOp.preVerificationGas.toString(16)}` as Hex,
-    maxFeePerGas: `0x${userOp.maxFeePerGas.toString(16)}` as Hex,
-    maxPriorityFeePerGas: `0x${userOp.maxPriorityFeePerGas.toString(16)}` as Hex,
-    paymasterAndData: userOp.paymasterAndData,
-    signature: userOp.signature,
-  };
+export async function getSponsoredTxGasEstimateAndPaymasterData(userOp: UserOperation): Promise<{
+  paymasterAndData: Hex;
+  callGasLimit: Hex;
+  verificationGasLimit: Hex;
+  preVerificationGas: Hex;
+}> {
+  const sponsorship = await paymasterClient.request({
+    method: 'pm_sponsorUserOperation' as any,
+    params: [userOp, ENTRY_POINT_ADDRESS],
+  }) as any;
 
-  const estimate = await bundlerClient.request({
-    method: 'eth_estimateUserOperationGas' as any,
-    params: [userOpHex, ENTRY_POINT_ADDRESS],
+  console.log('✅ Sponsorship received:', {
+    paymasterAndData: sponsorship.paymasterAndData?.substring(0, 20) + '...',
+    callGasLimit: sponsorship.callGasLimit,
+    verificationGasLimit: sponsorship.verificationGasLimit,
+    preVerificationGas: sponsorship.preVerificationGas
   });
 
-  return estimate as unknown as UserOperationGasEstimate;
+  // Return hex values directly from paymaster (no conversion)
+  return {
+    paymasterAndData: sponsorship.paymasterAndData as Hex,
+    callGasLimit: sponsorship.callGasLimit as Hex,
+    verificationGasLimit: sponsorship.verificationGasLimit as Hex,
+    preVerificationGas: sponsorship.preVerificationGas as Hex,
+  };
 }
 
 /**
  * Get current gas prices
  */
-export async function getGasPrices(): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
+export async function getGasPrices(): Promise<{ maxFeePerGas: Hex; maxPriorityFeePerGas: Hex }> {
   const feeData = await publicClient.estimateFeesPerGas();
 
   return {
-    maxFeePerGas: feeData.maxFeePerGas || parseGwei('20'),
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || parseGwei('1'),
+    maxFeePerGas: toHex(feeData.maxFeePerGas),
+    maxPriorityFeePerGas: toHex(feeData.maxPriorityFeePerGas),
   };
 }
 
@@ -159,24 +166,10 @@ export async function getGasPrices(): Promise<{ maxFeePerGas: bigint; maxPriorit
  * Submit UserOperation to Pimlico bundler
  */
 export async function submitUserOperation(userOp: UserOperation): Promise<Hex> {
-  // Convert to hex format
-  const userOpHex = {
-    sender: userOp.sender,
-    nonce: `0x${userOp.nonce.toString(16)}` as Hex,
-    initCode: userOp.initCode,
-    callData: userOp.callData,
-    callGasLimit: `0x${userOp.callGasLimit.toString(16)}` as Hex,
-    verificationGasLimit: `0x${userOp.verificationGasLimit.toString(16)}` as Hex,
-    preVerificationGas: `0x${userOp.preVerificationGas.toString(16)}` as Hex,
-    maxFeePerGas: `0x${userOp.maxFeePerGas.toString(16)}` as Hex,
-    maxPriorityFeePerGas: `0x${userOp.maxPriorityFeePerGas.toString(16)}` as Hex,
-    paymasterAndData: userOp.paymasterAndData,
-    signature: userOp.signature,
-  };
 
   const userOpHash: Hex = await bundlerClient.request({
     method: 'eth_sendUserOperation' as any,
-    params: [userOpHex, ENTRY_POINT_ADDRESS],
+    params: [userOp, ENTRY_POINT_ADDRESS],
   });
 
   return userOpHash;

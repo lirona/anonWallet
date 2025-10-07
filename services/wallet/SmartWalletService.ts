@@ -1,35 +1,32 @@
+import { p256 } from '@noble/curves/nist.js';
 import {
   createPublicClient,
   createWalletClient,
-  http,
-  type Hex,
-  parseEther,
-  keccak256,
-  encodePacked,
   encodeAbiParameters,
+  encodePacked,
+  http,
+  parseEther,
   toHex,
+  type Hex
 } from 'viem';
-import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { p256 } from '@noble/curves/nist.js';
+import { sepolia } from 'viem/chains';
 
-import { FACTORY_ABI } from '@/contracts/abi/factory';
-import { ENTRY_POINT_ADDRESS } from '@/constants/entryPoint';
-import config from '@/utils/config';
 import { webAuthnService } from '@/services/webauthn';
+import type { UserOperation } from '@/types/userOperation';
 import { fromBase64urlToBytes } from '@/utils/base64';
+import config from '@/utils/config';
 import {
-  getSmartWalletAddress,
-  isWalletDeployed,
-  getNonce,
   generateInitCode,
   generateTransferCallData,
-  estimateUserOperationGas,
   getGasPrices,
+  getNonce,
+  getSmartWalletAddress,
+  getSponsoredTxGasEstimateAndPaymasterData,
   getUserOperationHash,
+  isWalletDeployed,
   submitUserOperation,
 } from '@/utils/smartWallet';
-import type { UserOperation } from '@/types/userOperation';
 
 interface GasEstimates {
   callGasLimit: bigint;
@@ -88,7 +85,7 @@ class SmartWalletService {
       console.log('🏗️ Building deployment UserOp (with initCode)...');
 
       const initCode: Hex = generateInitCode(publicKey);
-      const nonce: bigint = await getNonce(walletAddress);
+      const nonce: Hex = toHex(await getNonce(walletAddress));
       const { maxFeePerGas, maxPriorityFeePerGas } = await getGasPrices();
 
       // Empty callData - we're just deploying the wallet
@@ -97,20 +94,23 @@ class SmartWalletService {
         nonce,
         initCode,
         callData: '0x', // Empty - just deployment
-        callGasLimit: 100000n,
-        verificationGasLimit: 300000n, // Higher for deployment
-        preVerificationGas: 50000n,
+        callGasLimit: '0x',
+        verificationGasLimit: '0xa6d74', // Higher for deployment
+        preVerificationGas: '0x117af',
         maxFeePerGas,
         maxPriorityFeePerGas,
         paymasterAndData: '0x',
         signature: '0x',
       };
 
-      // 3. Estimate gas
-      const gasEstimates = await this.estimateGas(userOp);
-      userOp.callGasLimit = gasEstimates.callGasLimit;
-      userOp.verificationGasLimit = gasEstimates.verificationGasLimit;
-      userOp.preVerificationGas = gasEstimates.preVerificationGas;
+      // 3. Get paymaster sponsorship and gas estimates
+      console.log('💰 Requesting paymaster sponsorship for deployment...');
+      const sponsorship = await getSponsoredTxGasEstimateAndPaymasterData(userOp);
+
+      userOp.paymasterAndData = sponsorship.paymasterAndData;
+      userOp.callGasLimit = sponsorship.callGasLimit;
+      userOp.verificationGasLimit = sponsorship.verificationGasLimit;
+      userOp.preVerificationGas = sponsorship.preVerificationGas;
 
       // 4. Sign and submit UserOp
       const signedUserOp = await this.signUserOperation(userOp, rawId);
@@ -230,7 +230,7 @@ class SmartWalletService {
     console.log('🏗️ Building UserOperation (deployed wallet)...');
 
     // 1. Get nonce
-    const nonce: bigint = await getNonce(walletAddress);
+    const nonce: Hex = toHex(await getNonce(walletAddress));
 
     // 2. Generate callData for transfer
     const transferAmount: bigint = parseEther(amount);
@@ -245,24 +245,30 @@ class SmartWalletService {
       nonce,
       initCode: '0x',
       callData,
-      callGasLimit: 100000n, // Initial estimate
-      verificationGasLimit: 150000n, // Initial estimate
-      preVerificationGas: 50000n, // Initial estimate
+      callGasLimit: '0xa6d74', 
+      verificationGasLimit: '0xa6d74', 
+      preVerificationGas: '0x117af',
+      // callGasLimit: '0x', 
+      // verificationGasLimit: '0x', 
+      // preVerificationGas: '0x',
       maxFeePerGas,
       maxPriorityFeePerGas,
       paymasterAndData: '0x',
       signature: '0x',
     };
 
-    // 5. Estimate gas (pure function returns gas estimates)
-    const gasEstimates = await this.estimateGas(userOp);
+ 
+    // 5. Get paymaster sponsorship and gas estimates
+    console.log('💰 Requesting paymaster sponsorship...');
+    const sponsorship = await getSponsoredTxGasEstimateAndPaymasterData(userOp);
 
-    // 6. Update userOp with estimated gas values
-    userOp.callGasLimit = gasEstimates.callGasLimit;
-    userOp.verificationGasLimit = gasEstimates.verificationGasLimit;
-    userOp.preVerificationGas = gasEstimates.preVerificationGas;
+    // 6. Apply sponsorship data to UserOperation
+    userOp.paymasterAndData = sponsorship.paymasterAndData;
+    userOp.callGasLimit = sponsorship.callGasLimit;
+    userOp.verificationGasLimit = sponsorship.verificationGasLimit;
+    userOp.preVerificationGas = sponsorship.preVerificationGas;
 
-    console.log('✅ UserOperation built (no init)');
+    console.log('✅ UserOperation built and sponsored (no init)');
     return userOp;
   }
 
@@ -281,7 +287,7 @@ class SmartWalletService {
     const initCode: Hex = generateInitCode(publicKey);
 
     // 2. Get nonce
-    const nonce: bigint = await getNonce(walletAddress);
+    const nonce: Hex = toHex(await getNonce(walletAddress));
 
     // 3. Generate callData for transfer
     const transferAmount: bigint = parseEther(amount);
@@ -296,59 +302,27 @@ class SmartWalletService {
       nonce,
       initCode,
       callData,
-      callGasLimit: 100000n, // Initial estimate
-      verificationGasLimit: 300000n, // Initial estimate (higher for deployment)
-      preVerificationGas: 50000n, // Initial estimate
+      callGasLimit: '0x',
+      verificationGasLimit: '0x',
+      preVerificationGas: '0x',
       maxFeePerGas,
       maxPriorityFeePerGas,
       paymasterAndData: '0x',
       signature: '0x',
     };
 
-    // 6. Estimate gas (pure function returns gas estimates)
-    const gasEstimates = await this.estimateGas(userOp);
+    // 6. Get paymaster sponsorship and gas estimates
+    console.log('💰 Requesting paymaster sponsorship...');
+    const sponsorship = await getSponsoredTxGasEstimateAndPaymasterData(userOp);
 
-    // 7. Update userOp with estimated gas values
-    userOp.callGasLimit = gasEstimates.callGasLimit;
-    userOp.verificationGasLimit = gasEstimates.verificationGasLimit;
-    userOp.preVerificationGas = gasEstimates.preVerificationGas;
+    // 7. Apply sponsorship data to UserOperation
+    userOp.paymasterAndData = sponsorship.paymasterAndData;
+    userOp.callGasLimit = sponsorship.callGasLimit;
+    userOp.verificationGasLimit = sponsorship.verificationGasLimit;
+    userOp.preVerificationGas = sponsorship.preVerificationGas;
 
-    console.log('✅ UserOperation built (with init)');
+    console.log('✅ UserOperation built and sponsored (with init)');
     return userOp;
-  }
-
-  /**
-   * Estimate gas for UserOperation (pure function)
-   * Returns gas estimates without mutating the input
-   */
-  private async estimateGas(userOp: UserOperation): Promise<GasEstimates> {
-    try {
-      const gasEstimate = await estimateUserOperationGas(userOp);
-      const safetyMargin = 150n;
-
-      const estimates: GasEstimates = {
-        callGasLimit: (BigInt(gasEstimate.callGasLimit) * safetyMargin) / 100n,
-        verificationGasLimit: (BigInt(gasEstimate.verificationGasLimit) * safetyMargin) / 100n,
-        preVerificationGas: (BigInt(gasEstimate.preVerificationGas) * safetyMargin) / 100n,
-      };
-
-      console.log('⛽ Gas estimated:', {
-        callGasLimit: estimates.callGasLimit.toString(),
-        verificationGasLimit: estimates.verificationGasLimit.toString(),
-        preVerificationGas: estimates.preVerificationGas.toString(),
-      });
-
-      return estimates;
-    } catch (error) {
-      console.warn('⚠️ Gas estimation failed, using fallback values');
-
-      // Return fallback values based on current userOp
-      return {
-        callGasLimit: userOp.callGasLimit,
-        verificationGasLimit: userOp.verificationGasLimit,
-        preVerificationGas: userOp.preVerificationGas,
-      };
-    }
   }
 
   /**

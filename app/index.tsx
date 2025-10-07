@@ -29,12 +29,6 @@ export default function WalletCreationScreen() {
       const walletAddress = await smartWalletService.getWalletAddress(publicKey);
       console.log('✅ Wallet address:', walletAddress);
 
-      // 3. Fund wallet with 0.01 ETH (must fund BEFORE deployment since user pays gas)
-      setProgressText('Funding wallet...');
-      console.log('💰 Step 3: Funding wallet with 0.01 ETH...');
-      await smartWalletService.fundWallet(walletAddress, '0.001');
-      console.log('✅ Wallet funded');
-
       // 4. Deploy wallet via UserOp (user pays for gas)
       setProgressText('Deploying wallet...');
       console.log('🏗️ Step 4: Deploying wallet via UserOp...');
@@ -43,15 +37,21 @@ export default function WalletCreationScreen() {
 
       // Wait for deployment to be mined
       setProgressText('Waiting for deployment...');
-      console.log('⏳ Waiting 15 seconds for deployment to be mined...');
-      await new Promise(resolve => setTimeout(resolve, 15000));
+      console.log('⏳ Waiting 30 seconds for deployment to be mined...');
+      await new Promise(resolve => setTimeout(resolve, 30000));
+
+      // 3. Fund wallet with 0.01 ETH (must fund BEFORE deployment since user pays gas)
+      setProgressText('Funding wallet...');
+      console.log('💰 Step 3: Funding wallet...');
+      await smartWalletService.fundWallet(walletAddress, '0.0001');
+      console.log('✅ Wallet funded');
 
       // 5. Test transfer: Send 0.001 ETH to test address
       setProgressText('Testing transaction...');
-      console.log('🧪 Step 5: Sending test transaction (0.001 ETH)...');
+      console.log('🧪 Step 5: Sending test transaction');
       await smartWalletService.sendTokens(
         '0x0E1774FD4f836E6Ba2E22d0e11F4c69684ae4EB7',
-        '0.001',
+        '0.00001',
         rawId,
         walletAddress
       );
