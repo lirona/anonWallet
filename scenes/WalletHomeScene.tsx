@@ -1,18 +1,18 @@
-import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatUnits, hexToBigInt, type Address } from 'viem';
 
 import ActionButton from '@/components/elements/ActionButton';
 import QRScannerModal from '@/components/elements/QRScannerModal';
 import TransactionItem from '@/components/elements/TransactionItem';
+import { DataPersistKeys, useDataPersist } from '@/hooks/useDataPersist';
+import { tokenService, type TokenTransfer } from '@/services';
+import { useAppSlice, useTokenSlice } from '@/slices';
 import { colors } from '@/theme/colors';
 import type { Transaction } from '@/types/Transaction';
-import { useAppSlice, useTokenSlice } from '@/slices';
-import { useDataPersist, DataPersistKeys } from '@/hooks/useDataPersist';
-import { tokenService, type TokenTransfer } from '@/services';
 
 /**
  * Convert TokenTransfer to Transaction format
@@ -297,7 +297,7 @@ function WalletHomeScene() {
             })}
           </Text>
         )}
-        <Text style={styles.balanceLabel}>Available Balance</Text>
+        <Text style={styles.balanceLabel}>יתרה זמינה</Text>
       </View>
 
       {/* Action Buttons */}
@@ -309,7 +309,7 @@ function WalletHomeScene() {
 
       {/* Transactions Section */}
       <View style={styles.transactionsSection}>
-        <Text style={styles.transactionsHeader}>Transactions</Text>
+        <Text style={styles.transactionsHeader}>פעולות אחרונות:</Text>
         {tokenSlice.isLoadingTransactions ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.white} />
@@ -327,7 +327,7 @@ function WalletHomeScene() {
             // ...existing code...
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No transactions yet</Text>
+                <Text style={styles.emptyText}>אין פעולות</Text>
               </View>
             }
           />
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.white,
+    color: colors.primary,
     letterSpacing: 2,
   },
   headerIcons: {

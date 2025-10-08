@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ActionButton from '@/components/elements/ActionButton';
@@ -182,7 +182,7 @@ function SendScene() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Success Toast */}
       <Toast
-        message="Successfully sent!"
+        message="נשלח בהצלחה!"
         visible={showSuccessToast}
         onHide={() => setShowSuccessToast(false)}
         duration={1500}
@@ -192,7 +192,7 @@ function SendScene() {
       {isConfirming && (
         <View style={styles.confirmingOverlay}>
           <ActivityIndicator size="large" color={colors.white} />
-          <Text style={styles.confirmingText}>Sending transaction...</Text>
+          <Text style={styles.confirmingText}>שולח...</Text>
         </View>
       )}
 
@@ -201,7 +201,7 @@ function SendScene() {
         <TouchableOpacity onPress={handleBack} style={styles.backButton} disabled={isConfirming}>
           <MaterialIcons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>Send COIL</Text>
+        <Text style={styles.title}>שליחת COIL</Text>
         <View style={styles.headerSpacer} />
       </View>
 

@@ -1,8 +1,8 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 import ActionButton from '@/components/elements/ActionButton';
 import { colors } from '@/theme/colors';
@@ -52,7 +52,7 @@ function RedeemScene() {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>Redeem Coupon</Text>
+        <Text style={styles.title}>מימוש קופון</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -89,7 +89,7 @@ function RedeemScene() {
 
         {/* Instructions */}
         <Text style={styles.instructionsText}>
-          Enter a valid coupon code to receive your reward.
+          הזן קוד קופון תקין כדי לקבל את הפרס שלך.
         </Text>
 
         {/* Spacer */}
@@ -99,7 +99,7 @@ function RedeemScene() {
         <View style={styles.actions}>
           {!isVerified ? (
             <ActionButton
-              label={isVerifying ? 'Verifying...' : 'Apply Code'}
+              label={isVerifying ? 'מאמת קוד קופון...' : 'מימוש קופון'}
               onPress={handleApplyCode}
               variant="secondary"
               fullWidth

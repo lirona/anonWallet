@@ -71,10 +71,10 @@ export default function WalletCreationScreen() {
       <View style={styles.content}>
         <Text style={styles.logo}>COIL</Text>
 
-        <Text style={styles.title}>Welcome to Coil Wallet</Text>
+        <Text style={styles.title}>ברוכים הבאים לארנק הדיגיטלי שלכם</Text>
 
         <Text style={styles.subtitle}>
-          Create your secure wallet with biometric authentication
+          יצירת ארנק חדש עם אימות ביומטרי
         </Text>
 
         <TouchableOpacity
@@ -89,7 +89,7 @@ export default function WalletCreationScreen() {
               <Text style={styles.buttonText}>{progressText}</Text>
             </View>
           ) : (
-            <Text style={styles.buttonText}>Create Wallet</Text>
+            <Text style={styles.buttonText}>יצירת ארנק</Text>
           )}
         </TouchableOpacity>
       </View>
