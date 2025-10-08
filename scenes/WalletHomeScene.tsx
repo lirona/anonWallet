@@ -40,114 +40,159 @@ function WalletHomeScene() {
   const tokenSlice = useTokenSlice();
   const { removePersistData } = useDataPersist();
   const [showScannerModal, setShowScannerModal] = React.useState(false);
+  const [isInitialLoad, setIsInitialLoad] = React.useState(true);
 
-  // Fetch balance and transactions on mount
-  React.useEffect(() => {
+  // Extract stable references
+  const tokenDispatch = tokenSlice.dispatch;
+  const {
+    setLoadingBalance,
+    setLoadingTransactions,
+    setBalance,
+    setTransactions,
+    setError,
+    prependTransactions,
+    setLastFetchedBlock,
+  } = tokenSlice;
+
+  // Fetch balance and transactions on mount and when screen is focused
+  const fetchBalanceAndTransactions = React.useCallback(async () => {
     if (!user?.walletAddress) return;
-
-    const fetchBalanceAndTransactions = async () => {
-      try {
-        // Fetch balance
-        tokenSlice.dispatch(tokenSlice.setLoadingBalance(true));
-        const [balance, balanceRaw] = await Promise.all([
-          tokenService.getBalance(user.walletAddress as Address),
-          tokenService.getBalanceRaw(user.walletAddress as Address),
-        ]);
-        tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
-        tokenSlice.dispatch(tokenSlice.setLoadingBalance(false));
-
-        // Fetch latest 10 transactions (from current block - 10 to current block)
-        tokenSlice.dispatch(tokenSlice.setLoadingTransactions(true));
-        const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
-          limit: 10,
-        });
-        tokenSlice.dispatch(tokenSlice.setTransactions(transfers));
-        tokenSlice.dispatch(tokenSlice.setLoadingTransactions(false));
-      } catch (error) {
-        console.error('Error fetching balance and transactions:', error);
-        tokenSlice.dispatch(tokenSlice.setError(error instanceof Error ? error.message : 'Unknown error'));
-        tokenSlice.dispatch(tokenSlice.setLoadingBalance(false));
-        tokenSlice.dispatch(tokenSlice.setLoadingTransactions(false));
+    // Only show spinners on initial load
+    if (isInitialLoad) {
+      tokenDispatch(setLoadingBalance(true));
+      tokenDispatch(setLoadingTransactions(true));
+    }
+    try {
+      const [balance, balanceRaw] = await Promise.all([
+        tokenService.getBalance(user.walletAddress as Address),
+        tokenService.getBalanceRaw(user.walletAddress as Address),
+      ]);
+      tokenDispatch(setBalance({ balance, balanceRaw }));
+      const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
+        limit: 10,
+      });
+      tokenDispatch(setTransactions(transfers));
+    } catch (error) {
+      console.error('Error fetching balance and transactions:', error);
+      tokenDispatch(setError(error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      if (isInitialLoad) {
+        tokenDispatch(setLoadingBalance(false));
+        tokenDispatch(setLoadingTransactions(false));
+        setIsInitialLoad(false);
       }
-    };
+    }
+  }, [
+    user?.walletAddress,
+    isInitialLoad,
+    tokenDispatch,
+    setLoadingBalance,
+    setLoadingTransactions,
+    setBalance,
+    setTransactions,
+    setError,
+  ]);
 
-    fetchBalanceAndTransactions();
-  }, [user?.walletAddress]);
+  // Remove initial useEffect fetch to avoid duplicate requests
+
+  // Only fetch on initial mount, not on every focus to avoid clearing the list
+  React.useEffect(() => {
+    if (isInitialLoad) {
+      fetchBalanceAndTransactions();
+    }
+  }, [isInitialLoad, fetchBalanceAndTransactions]);
 
   // Poll for balance and new transactions every 5 seconds
   React.useEffect(() => {
-    if (!user?.walletAddress || !tokenSlice.lastFetchedBlock) return;
-
+    if (!user?.walletAddress) return;
+    let isMounted = true;
     const pollBalanceAndTransactions = async () => {
+      // Don't show spinners during polling - update seamlessly
       try {
-        // Fetch balance
         const [balance, balanceRaw] = await Promise.all([
           tokenService.getBalance(user.walletAddress as Address),
           tokenService.getBalanceRaw(user.walletAddress as Address),
         ]);
-        tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
-
-        // Get current block to avoid fetching blocks that don't exist yet
+        if (isMounted) {
+          tokenDispatch(setBalance({ balance, balanceRaw }));
+        }
+        // ...existing block polling logic...
         const currentBlock = await tokenService.getCurrentBlock();
-        const lastBlock = hexToBigInt(tokenSlice.lastFetchedBlock);
-
-        // Only fetch if there are new blocks
+        let lastBlock: bigint;
+        if (tokenSlice.lastFetchedBlock) {
+          lastBlock = hexToBigInt(tokenSlice.lastFetchedBlock);
+        } else {
+          lastBlock = currentBlock;
+        }
         if (currentBlock > lastBlock) {
-          // Fetch transactions from the last fetched block + 1 to current block
+          const fromBlock = lastBlock + 1n;
+          const toBlock = currentBlock;
+          console.log(`🔄 Polling: Fetching balance and transactions between blocks ${fromBlock} - ${toBlock}`);
           const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
-            fromBlock: lastBlock + 1n,
-            toBlock: currentBlock,
+            fromBlock,
+            toBlock,
             limit: 10,
           });
-
-          // Prepend new transactions if any
-          if (transfers.length > 0) {
-            tokenSlice.dispatch(tokenSlice.prependTransactions(transfers));
-          } else {
-            // No new transactions, but update lastFetchedBlock to current block
-            tokenSlice.dispatch(tokenSlice.setLastFetchedBlock(`0x${currentBlock.toString(16)}`));
+          if (isMounted && transfers.length > 0) {
+            tokenDispatch(prependTransactions(transfers));
+          } else if (isMounted) {
+            tokenDispatch(setLastFetchedBlock(`0x${currentBlock.toString(16)}`));
           }
+        } else {
+          console.log(`🔄 Polling: No new blocks. Current: ${currentBlock}, Last: ${lastBlock}`);
         }
       } catch (error) {
         console.error('Error polling balance and transactions:', error);
       }
     };
+    const intervalId = setInterval(pollBalanceAndTransactions, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [
+    user?.walletAddress,
+    tokenDispatch,
+    setBalance,
+    prependTransactions,
+    setLastFetchedBlock,
+    tokenSlice.lastFetchedBlock,
+  ]);
 
-    // Set up polling interval (every 5 seconds)
-    const intervalId = setInterval(pollBalanceAndTransactions, 5000);
-
-    // Cleanup on unmount
-    return () => clearInterval(intervalId);
-  }, [user?.walletAddress, tokenSlice.lastFetchedBlock]);
-
+  // TODO: Re-implement infinite scroll - see GitHub issue
   // Load more transactions for infinite scroll
-  const handleLoadMore = async () => {
-    if (!user?.walletAddress || tokenSlice.isLoadingMore || tokenSlice.transactions.length === 0) return;
+  // const handleLoadMore = async () => {
+  //   if (!user?.walletAddress || tokenSlice.isLoadingMore || tokenSlice.transactions.length === 0) return;
 
-    try {
-      tokenSlice.dispatch(tokenSlice.setLoadingMore(true));
+  //   try {
+  //     tokenSlice.dispatch(tokenSlice.setLoadingMore(true));
 
-      // Get the oldest transaction's block number
-      const oldestTransaction = tokenSlice.transactions[tokenSlice.transactions.length - 1];
-      const oldestBlock = hexToBigInt(oldestTransaction.blockNumber);
+  //     // Get the oldest transaction's block number
+  //     const oldestTransaction = tokenSlice.transactions[tokenSlice.transactions.length - 1];
+  //     const oldestBlock = hexToBigInt(oldestTransaction.blockNumber);
 
-      // Fetch 10 more transactions before the oldest block
-      const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
-        toBlock: oldestBlock - 1n,
-        limit: 10,
-      });
+  //     console.log(`📜 Loading more historical transactions before block ${oldestBlock}`);
 
-      // Append older transactions
-      if (transfers.length > 0) {
-        tokenSlice.dispatch(tokenSlice.appendTransactions(transfers));
-      }
+  //     // Fetch 10 more transactions before the oldest block
+  //     const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
+  //       toBlock: oldestBlock - 1n,
+  //       limit: 10,
+  //     });
 
-      tokenSlice.dispatch(tokenSlice.setLoadingMore(false));
-    } catch (error) {
-      console.error('Error loading more transactions:', error);
-      tokenSlice.dispatch(tokenSlice.setLoadingMore(false));
-    }
-  };
+  //     // Append older transactions
+  //     if (transfers.length > 0) {
+  //       tokenSlice.dispatch(tokenSlice.appendTransactions(transfers));
+  //       console.log(`✅ Loaded ${transfers.length} more transactions`);
+  //     } else {
+  //       console.log(`📭 No more transactions to load`);
+  //     }
+
+  //     tokenSlice.dispatch(tokenSlice.setLoadingMore(false));
+  //   } catch (error) {
+  //     console.error('Error loading more transactions:', error);
+  //     tokenSlice.dispatch(tokenSlice.setLoadingMore(false));
+  //   }
+  // };
 
   const handleScanQR = () => {
     setShowScannerModal(true);
@@ -188,15 +233,7 @@ function WalletHomeScene() {
   };
 
   const handleSend = () => {
-    // Navigate to send screen with hardcoded test values
-    router.push({
-      pathname: '/send',
-      params: {
-        recipient: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-        amount: '10.50',
-        chainId: '11155111',
-      },
-    });
+    router.push('/send');
   };
 
   const handleNotifications = () => {
@@ -250,6 +287,8 @@ function WalletHomeScene() {
       <View style={styles.balanceSection}>
         {tokenSlice.isLoadingBalance ? (
           <ActivityIndicator size="large" color={colors.white} />
+        ) : tokenSlice.error ? (
+          <Text style={styles.errorText}>{tokenSlice.error}</Text>
         ) : (
           <Text style={styles.balanceAmount}>
             {parseFloat(tokenSlice.balance).toLocaleString('en-US', {
@@ -275,20 +314,21 @@ function WalletHomeScene() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.white} />
           </View>
+        ) : tokenSlice.error ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.errorText}>{tokenSlice.error}</Text>
+          </View>
         ) : (
           <FlatList
             data={tokenSlice.transactions.map(t => convertToTransaction(t, user?.walletAddress || ''))}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <TransactionItem transaction={item} />}
             showsVerticalScrollIndicator={false}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              tokenSlice.isLoadingMore ? (
-                <View style={styles.loadingMoreContainer}>
-                  <ActivityIndicator size="small" color={colors.white} />
-                </View>
-              ) : null
+            // ...existing code...
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No transactions yet</Text>
+              </View>
             }
           />
         )}
@@ -358,6 +398,26 @@ const styles = StyleSheet.create({
   loadingMoreContainer: {
     paddingVertical: 16,
     alignItems: 'center',
+  },
+  loadingMoreText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginTop: 8,
+  },
+  emptyContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 16,
+    color: '#ff6b6b',
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
 });
 

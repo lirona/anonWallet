@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "dotenvx run --env-file=.env.dev -- expo start",
-    "prebuild": "expo prebuild",
+    "prebuild": "dotenvx run --env-file=.env.dev -- expo prebuild",
     "android": "dotenvx run --env-file=.env.dev -- expo run:android",
     "android:prod": "dotenvx run --env-file=.env.production -- expo run:android",
     "ios": "dotenvx run --env-file=.env.dev -- expo run:ios",

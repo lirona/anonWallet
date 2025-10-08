@@ -1,15 +1,15 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ActionButton from '@/components/elements/ActionButton';
 import Toast from '@/components/elements/Toast';
-import { smartWalletService } from '@/services';
-import { useAppSlice } from '@/slices';
+import { smartWalletService, tokenService } from '@/services';
+import { useAppSlice, useTokenSlice } from '@/slices';
 import { colors } from '@/theme/colors';
-import type { Hex } from 'viem';
+import { formatEther, hexToBigInt, parseEther, type Hex } from 'viem';
 
 function SendScene() {
   // Get params from URL (scanned QR code)
@@ -20,12 +20,36 @@ function SendScene() {
   }>();
 
   const { user } = useAppSlice();
+  const tokenSlice = useTokenSlice();
   const [recipient, setRecipient] = useState(params.recipient || '');
   const [amount, setAmount] = useState(params.amount || '');
   const [isSending, setIsSending] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const isFormValid = recipient.trim().length > 0 && amount.trim().length > 0;
+
+  // Available balance from Redux (raw hex -> bigint)
+  const available = useMemo(() => {
+    try {
+      return tokenSlice.balanceRaw ? hexToBigInt(tokenSlice.balanceRaw) : 0n;
+    } catch {
+      return 0n;
+    }
+  }, [tokenSlice.balanceRaw]);
+
+  // Parse amount to wei (18 decimals) safely; default to 0n if invalid
+  const desiredAmountWei = useMemo(() => {
+    const trimmed = amount.trim();
+    if (!trimmed) return 0n;
+    try {
+      return parseEther(trimmed);
+    } catch {
+      return 0n;
+    }
+  }, [amount]);
+
+  const isAmountTooHigh = desiredAmountWei > available;
 
   const handleBack = () => {
     router.back();
@@ -44,7 +68,7 @@ function SendScene() {
       console.log('💸 Sending transaction:', {
         from: user.walletAddress,
         to: recipient,
-        amount: `${amount} ETH`,
+        amount: `${amount} COIL`,
         chainId: params.chainId,
       });
 
@@ -58,13 +82,95 @@ function SendScene() {
 
       console.log('✅ Transaction sent:', userOpHash);
 
-      // Show success toast
-      setShowSuccessToast(true);
+      // Show confirming state
+      setIsSending(false);
+      setIsConfirming(true);
 
-      // Wait for toast to show, then navigate back
-      setTimeout(() => {
-        router.replace('/wallet-home');
-      }, 1500);
+      // Calculate expected new balance (current balance - amount sent)
+      const expectedNewBalance = available - desiredAmountWei;
+      console.log(`💰 Expected new balance: ${formatEther(expectedNewBalance)} COIL`);
+
+      // Poll until the transaction is indexed and balance is updated
+      let attempts = 0;
+      const maxAttempts = 20; // Poll for up to 20 seconds
+      const pollInterval = 1000; // Check every 1 second
+
+      const waitForConfirmation = async (): Promise<boolean> => {
+        attempts++;
+        console.log(`🔄 Polling attempt ${attempts}/${maxAttempts}...`);
+
+        try {
+          const [balance, balanceRaw] = await Promise.all([
+            tokenService.getBalance(user.walletAddress as Hex),
+            tokenService.getBalanceRaw(user.walletAddress as Hex),
+          ]);
+
+          const currentBalance = hexToBigInt(balanceRaw);
+          console.log(`📊 Current balance: ${balance} COIL`);
+
+          // Check if balance has decreased to expected amount
+          const balanceUpdated = currentBalance <= expectedNewBalance;
+
+          if (balanceUpdated) {
+            console.log('✅ Balance updated! Fetching fresh transactions...');
+            
+            // Fetch fresh transactions now that balance has changed
+            const transfers = await tokenService.getTransfers(user.walletAddress as Hex, { limit: 10 });
+            
+            // Update Redux with new balance and transactions
+            tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
+            tokenSlice.dispatch(tokenSlice.prependTransactions(transfers));
+            
+            console.log('✅ Transaction confirmed! Balance and transactions updated in Redux.');
+            return true;
+          }
+
+          return false;
+        } catch (error) {
+          console.error('Error polling for confirmation:', error);
+          return false;
+        }
+      };
+
+      // Start polling
+      const poll = async () => {
+        while (attempts < maxAttempts) {
+          const confirmed = await waitForConfirmation();
+          if (confirmed) {
+            // Hide confirming state and show success toast
+            setIsConfirming(false);
+            setShowSuccessToast(true);
+            // Navigate back after toast (using back() to preserve component state)
+            setTimeout(() => {
+              router.back();
+            }, 1500);
+            return;
+          }
+          // Wait before next poll
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
+
+        // Timeout - update anyway and navigate
+        console.warn('⚠️ Polling timeout - updating data and navigating anyway');
+        try {
+          const [balance, balanceRaw, transfers] = await Promise.all([
+            tokenService.getBalance(user.walletAddress as Hex),
+            tokenService.getBalanceRaw(user.walletAddress as Hex),
+            tokenService.getTransfers(user.walletAddress as Hex, { limit: 10 }),
+          ]);
+          tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
+          tokenSlice.dispatch(tokenSlice.prependTransactions(transfers));
+        } catch (error) {
+          console.error('Error in timeout update:', error);
+        }
+        setIsConfirming(false);
+        setShowSuccessToast(true);
+        setTimeout(() => {
+          router.back();
+        }, 1500);
+      };
+
+      poll();
     } catch (error) {
       console.error('❌ Error sending:', error);
       Alert.alert('Error', `Failed to send: ${error instanceof Error ? error.message : String(error)}`);
@@ -82,9 +188,17 @@ function SendScene() {
         duration={1500}
       />
 
+      {/* Confirming Overlay */}
+      {isConfirming && (
+        <View style={styles.confirmingOverlay}>
+          <ActivityIndicator size="large" color={colors.white} />
+          <Text style={styles.confirmingText}>Sending transaction...</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton} disabled={isConfirming}>
           <MaterialIcons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.title}>Send COIL</Text>
@@ -98,36 +212,39 @@ function SendScene() {
           <Text style={styles.inputLabel}>Recipient Address</Text>
           <TextInput
             style={styles.input}
-            placeholder="0x..."
+            placeholder=""
             placeholderTextColor={colors.textSecondary}
             value={recipient}
             onChangeText={setRecipient}
             autoCapitalize="none"
-            editable={!params.recipient} // Lock if from QR code
+            autoCorrect={false}
+            spellCheck={false}
           />
         </View>
 
         {/* Amount Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Amount</Text>
+          <Text style={styles.inputLabel}>Amount (COIL)</Text>
           <TextInput
-            style={styles.input}
-            placeholder="0.00"
+            style={[styles.input, isAmountTooHigh && styles.inputError]}
+            placeholder=""
             placeholderTextColor={colors.textSecondary}
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
-            editable={!params.amount} // Lock if from QR code
+            autoCorrect={false}
+            spellCheck={false}
           />
+          <View style={styles.inlineInfoRow}>
+            <View style={{ flex: 1 }} />
+            <Text style={styles.availableText}>Available balance: {formatEther(available)}</Text>
+          </View>
+          {isAmountTooHigh && (
+            <Text style={styles.errorText}>Amount exceeds available balance</Text>
+          )}
         </View>
 
-        {/* Chain ID Display (if from QR) */}
-        {params.chainId && (
-          <View style={styles.infoContainer}>
-            <MaterialIcons name="info" size={16} color={colors.textSecondary} />
-            <Text style={styles.infoText}>Chain ID: {params.chainId}</Text>
-          </View>
-        )}
+        {/* Removed Chain ID section per requirement */}
 
         {/* Spacer */}
         <View style={styles.spacer} />
@@ -140,7 +257,7 @@ function SendScene() {
             variant="primary"
             fullWidth
             shape="pill"
-            disabled={!isFormValid || isSending}
+            disabled={!isFormValid || isSending || isAmountTooHigh}
           />
         </View>
       </View>
@@ -195,6 +312,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.white,
   },
+  inputError: {
+    borderWidth: 1,
+    borderColor: '#ff6b6b',
+  },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -208,11 +329,42 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginLeft: 8,
   },
+  inlineInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  availableText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#ff6b6b',
+  },
   spacer: {
     flex: 1,
   },
   actions: {
     paddingBottom: 16,
+  },
+  confirmingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  confirmingText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: colors.white,
+    fontWeight: '600',
   },
 });
 

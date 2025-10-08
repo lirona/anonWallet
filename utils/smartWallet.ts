@@ -1,18 +1,42 @@
 import {
   createPublicClient,
-  createWalletClient,
   encodeFunctionData,
   http,
   toHex,
   type Hex
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 
 import { ENTRY_POINT_ABI, ENTRY_POINT_ADDRESS } from '@/constants/entryPoint';
 import { FACTORY_ABI } from '@/contracts/abi/factory';
+import COIL_ABI_FILE from '@/services/token/COIL.abi.json';
 import { type UserOperation } from '@/types/userOperation';
 import config from '@/utils/config';
+
+// Extract the ABI array from the JSON file
+const COIL_ABI = COIL_ABI_FILE.abi;
+
+// SimpleAccount executeBatch function ABI (matches contracts/src/SimpleAccount.sol)
+// executeBatch(Call[] calls) where Call = { dest: address, value: uint256, data: bytes }
+const SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI = [
+  {
+    inputs: [
+      {
+        name: 'calls',
+        type: 'tuple[]',
+        components: [
+          { name: 'dest', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'data', type: 'bytes' },
+        ],
+      },
+    ],
+    name: 'executeBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
 
 // Pimlico bundler client (v1 - for submitting user operations)
 const bundlerClient = createPublicClient({
@@ -32,12 +56,6 @@ const publicClient = createPublicClient({
   transport: http(config.rpcUrl),
 });
 
-const account = privateKeyToAccount(config.relayerPrivateKey as Hex);
-const walletClient = createWalletClient({
-  account,
-  chain: sepolia,
-  transport: http(config.rpcUrl),
-});
 
 /**
  * Get smart wallet address using factory's getAddress function
@@ -94,27 +112,50 @@ export function generateInitCode(publicKey: readonly [Hex, Hex]): Hex {
 }
 
 /**
- * Generate callData for ETH transfer (SimpleAccount execute function)
+ * Generate callData for ERC20 token transfer (COIL)
+ * Wraps ERC20 transfer() in SimpleAccount execute() function
+ * @param to - Recipient address
+ * @param amount - Token amount (in wei, 18 decimals)
+ * @returns Encoded callData for UserOperation
  */
-export function generateTransferCallData(to: Hex, amount: bigint): Hex {
-  // SimpleAccount execute(address dest, uint256 value, bytes calldata func)
-  // For ETH transfer, func is empty bytes
+export function generateERC20TransferCallData(to: Hex, amount: bigint): Hex {
+  const tokenAddress = config.tokenAddress as Hex;
+
+  // 1. Encode ERC20 transfer(to, amount)
+  const erc20TransferData = encodeFunctionData({
+    abi: COIL_ABI,
+    functionName: 'transfer',
+    args: [to, amount],
+  });
+
+  // 2. Wrap in SimpleAccount executeBatch([{ dest: tokenAddress, value: 0, data: erc20TransferData }])
+  // value = 0 because we're not sending ETH, just calling the token contract
   return encodeFunctionData({
-    abi: [
-      {
-        inputs: [
-          { name: 'dest', type: 'address' },
-          { name: 'value', type: 'uint256' },
-          { name: 'func', type: 'bytes' }
-        ],
-        name: 'execute',
-        outputs: [],
-        stateMutability: 'nonpayable',
-        type: 'function',
-      }
-    ],
-    functionName: 'execute',
-    args: [to, amount, '0x'],
+    abi: SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI,
+    functionName: 'executeBatch',
+    args: [[{ dest: tokenAddress, value: 0n, data: erc20TransferData }]],
+  });
+}
+
+/**
+ * Generate callData for claiming welcome bonus from COIL token
+ * Wraps distributeWelcomeBonus() in SimpleAccount execute() function
+ * @returns Encoded callData for UserOperation
+ */
+export function generateWelcomeBonusCallData(): Hex {
+  const tokenAddress = config.tokenAddress as Hex;
+
+  // 1. Encode distributeWelcomeBonus() - no parameters needed
+  const bonusCallData = encodeFunctionData({
+    abi: COIL_ABI,
+    functionName: 'distributeWelcomeBonus',
+  });
+
+  // 2. Wrap in SimpleAccount executeBatch([{ dest: tokenAddress, value: 0, data: bonusCallData }])
+  return encodeFunctionData({
+    abi: SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI,
+    functionName: 'executeBatch',
+    args: [[{ dest: tokenAddress, value: 0n, data: bonusCallData }]],
   });
 }
 

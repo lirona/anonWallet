@@ -1,7 +1,6 @@
 import { p256 } from '@noble/curves/nist.js';
 import {
   createPublicClient,
-  createWalletClient,
   encodeAbiParameters,
   encodePacked,
   http,
@@ -9,16 +8,17 @@ import {
   toHex,
   type Hex
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 
+import COIL_ABI_FILE from '@/services/token/COIL.abi.json';
 import { webAuthnService } from '@/services/webauthn';
 import type { UserOperation } from '@/types/userOperation';
 import { fromBase64urlToBytes } from '@/utils/base64';
 import config from '@/utils/config';
 import {
+  generateERC20TransferCallData,
   generateInitCode,
-  generateTransferCallData,
+  generateWelcomeBonusCallData,
   getGasPrices,
   getNonce,
   getSmartWalletAddress,
@@ -28,11 +28,6 @@ import {
   submitUserOperation,
 } from '@/utils/smartWallet';
 
-interface GasEstimates {
-  callGasLimit: bigint;
-  verificationGasLimit: bigint;
-  preVerificationGas: bigint;
-}
 
 /**
  * Smart Wallet Service
@@ -40,22 +35,17 @@ interface GasEstimates {
  */
 class SmartWalletService {
   private publicClient;
-  private walletClient;
 
   constructor() {
-    // Initialize blockchain clients
+    // Initialize blockchain client
     this.publicClient = createPublicClient({
       chain: sepolia,
       transport: http(config.rpcUrl),
     });
-
-    const account = privateKeyToAccount(config.relayerPrivateKey as Hex);
-    this.walletClient = createWalletClient({
-      account,
-      chain: sepolia,
-      transport: http(config.rpcUrl),
-    });
   }
+
+  // Full COIL ABI (imported JSON)
+  private static readonly COIL_ABI = (COIL_ABI_FILE as any).abi as any[];
 
   /**
    * Get deterministic wallet address from public key (before deployment)
@@ -67,34 +57,35 @@ class SmartWalletService {
   }
 
   /**
-   * Deploy smart wallet via UserOp (user pays for gas)
-   * Just deploys the wallet, doesn't call saveUser
+   * Deploy smart wallet and claim welcome bonus (101 COIL tokens)
+   * Deploys wallet via UserOp and calls distributeWelcomeBonus() on token contract
    * @param publicKey - Public key coordinates [x, y]
    * @param rawId - Passkey credential ID (base64Url encoded)
    * @returns Deployed wallet address
    */
-  async deployWallet(publicKey: readonly [Hex, Hex], rawId: string): Promise<Hex> {
-    console.log('🏗️ Deploying smart wallet via UserOp...');
+  async deployWalletAndClaimWelcomeBonus(publicKey: readonly [Hex, Hex], rawId: string): Promise<Hex> {
+    console.log('🏗️ Deploying smart wallet and claiming welcome bonus...');
 
     try {
       // 1. Calculate wallet address (deterministic)
       const walletAddress = await this.getWalletAddress(publicKey);
       console.log('📍 Wallet address:', walletAddress);
 
-      // 2. Build UserOp with initCode for deployment (empty callData - just deploy)
-      console.log('🏗️ Building deployment UserOp (with initCode)...');
+      // 2. Build UserOp with initCode for deployment AND callData for welcome bonus
+      console.log('🏗️ Building deployment UserOp (with initCode + welcome bonus claim)...');
 
       const initCode: Hex = generateInitCode(publicKey);
+      const callData: Hex = generateWelcomeBonusCallData(); // Claim 101 COIL tokens
       const nonce: Hex = toHex(await getNonce(walletAddress));
       const { maxFeePerGas, maxPriorityFeePerGas } = await getGasPrices();
 
-      // Empty callData - we're just deploying the wallet
+      // UserOp that deploys wallet AND claims welcome bonus in one transaction
       const userOp: UserOperation = {
         sender: walletAddress,
         nonce,
         initCode,
-        callData: '0x', // Empty - just deployment
-        callGasLimit: '0x',
+        callData, // Empty - just deployment
+        callGasLimit: '0xa6d74',
         verificationGasLimit: '0xa6d74', // Higher for deployment
         preVerificationGas: '0x117af',
         maxFeePerGas,
@@ -104,7 +95,7 @@ class SmartWalletService {
       };
 
       // 3. Get paymaster sponsorship and gas estimates
-      console.log('💰 Requesting paymaster sponsorship for deployment...');
+      console.log('💰 Requesting paymaster sponsorship for deployment + bonus claim...');
       const sponsorship = await getSponsoredTxGasEstimateAndPaymasterData(userOp);
 
       userOp.paymasterAndData = sponsorship.paymasterAndData;
@@ -115,61 +106,25 @@ class SmartWalletService {
       // 4. Sign and submit UserOp
       const signedUserOp = await this.signUserOperation(userOp, rawId);
 
-      console.log('🚀 Submitting deployment UserOp...');
+      console.log('🚀 Submitting deployment + bonus claim UserOp...');
       const userOpHash = await submitUserOperation(signedUserOp);
 
-      console.log('✅ Wallet deployed via UserOp:', {
+      console.log('✅ Wallet deployed and welcome bonus claimed:', {
         userOpHash,
         walletAddress,
       });
 
       return walletAddress;
     } catch (error) {
-      console.error('❌ Wallet deployment failed:', error);
-      throw new Error(`Failed to deploy wallet: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('❌ Wallet deployment and bonus claim failed:', error);
+      throw new Error(`Failed to deploy wallet and claim bonus: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   /**
-   * Fund wallet with ETH from relayer
-   * @param walletAddress - Target wallet address
-   * @param amount - Amount in ETH (e.g., "0.01")
-   * @returns Transaction hash
-   */
-  async fundWallet(walletAddress: Hex, amount: string): Promise<Hex> {
-    console.log(`💰 Funding wallet with ${amount} ETH...`, walletAddress);
-
-    try {
-      const transferAmount: bigint = parseEther(amount);
-
-      const txHash: Hex = await this.walletClient.sendTransaction({
-        to: walletAddress,
-        value: transferAmount,
-      });
-
-      console.log('⏳ Waiting for funding transaction...', txHash);
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: txHash,
-        timeout: 60_000,
-      });
-
-      console.log('✅ Wallet funded:', {
-        txHash,
-        amount: `${amount} ETH`,
-        status: receipt.status,
-      });
-
-      return txHash;
-    } catch (error) {
-      console.error('❌ Wallet funding failed:', error);
-      throw new Error(`Failed to fund wallet: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
-   * Send tokens via UserOperation
+   * Send COIL tokens via UserOperation
    * @param to - Recipient address
-   * @param amount - Amount in ETH (e.g., "0.001")
+   * @param amount - Amount in COIL tokens (e.g., "10.5")
    * @param rawId - Passkey credential ID for signing (base64Url encoded)
    * @param walletAddress - Sender wallet address
    * @param publicKey - Sender public key (only needed if wallet not deployed)
@@ -182,9 +137,9 @@ class SmartWalletService {
     walletAddress: Hex,
     publicKey?: readonly [Hex, Hex]
   ): Promise<Hex> {
-    console.log('💸 Sending tokens via UserOperation...', {
+    console.log('💸 Sending COIL tokens via UserOperation...', {
       to,
-      amount: `${amount} ETH`,
+      amount: `${amount} COIL`,
       from: walletAddress,
     });
 
@@ -213,7 +168,7 @@ class SmartWalletService {
       console.log('✅ UserOperation submitted:', {
         userOpHash,
         to,
-        amount: `${amount} ETH`,
+        amount: `${amount} COIL`,
       });
 
       return userOpHash;
@@ -232,9 +187,9 @@ class SmartWalletService {
     // 1. Get nonce
     const nonce: Hex = toHex(await getNonce(walletAddress));
 
-    // 2. Generate callData for transfer
+    // 2. Generate callData for ERC20 transfer
     const transferAmount: bigint = parseEther(amount);
-    const callData: Hex = generateTransferCallData(to, transferAmount);
+    const callData: Hex = generateERC20TransferCallData(to, transferAmount);
 
     // 3. Get gas prices
     const { maxFeePerGas, maxPriorityFeePerGas } = await getGasPrices();
@@ -289,9 +244,9 @@ class SmartWalletService {
     // 2. Get nonce
     const nonce: Hex = toHex(await getNonce(walletAddress));
 
-    // 3. Generate callData for transfer
+    // 3. Generate callData for ERC20 transfer
     const transferAmount: bigint = parseEther(amount);
-    const callData: Hex = generateTransferCallData(to, transferAmount);
+    const callData: Hex = generateERC20TransferCallData(to, transferAmount);
 
     // 4. Get gas prices
     const { maxFeePerGas, maxPriorityFeePerGas } = await getGasPrices();
@@ -421,6 +376,20 @@ class SmartWalletService {
   async getBalance(address: Hex): Promise<string> {
     const balance = await this.publicClient.getBalance({ address });
     return balance.toString();
+  }
+
+  /**
+   * Get COIL token balance for address
+   */
+  async getTokenBalance(address: Hex): Promise<bigint> {
+    const token = config.tokenAddress as Hex;
+    const bal = await this.publicClient.readContract({
+      address: token,
+      abi: SmartWalletService.COIL_ABI,
+      functionName: 'balanceOf',
+      args: [address],
+    });
+    return bal as unknown as bigint;
   }
 }
 
