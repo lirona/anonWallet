@@ -33,6 +33,7 @@ yarn-error.*
 # environment files (keep only .example files)
 .env.dev
 .env.production
+contracts/.env
 
 # typescript
 *.tsbuildinfo
@@ -42,3 +43,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# generated libraries
+/contracts/lib
+/contracts/out
+/contracts/cache
+/contracts/broadcast
+
+
