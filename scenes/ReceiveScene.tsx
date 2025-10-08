@@ -33,7 +33,7 @@ function ReceiveScene() {
 
   const handleCopyLink = () => {
     if (!user?.walletAddress) {
-      Alert.alert('Error', 'Wallet address not found');
+      Alert.alert('שגיאה', 'כתובת ארנק לא נמצאה');
       return;
     }
 
@@ -50,7 +50,7 @@ function ReceiveScene() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Toast Notification */}
       <Toast
-        message="Copied to clipboard!"
+        message="הועתק ללוח!"
         visible={showToast}
         onHide={() => setShowToast(false)}
       />
@@ -68,7 +68,7 @@ function ReceiveScene() {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>Receive COIL</Text>
+        <Text style={styles.title}>קבלת COIL</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -76,7 +76,7 @@ function ReceiveScene() {
       <View style={styles.content}>
         {/* Centered Instruction Text */}
         <View style={styles.instructionContainer}>
-          <Text style={styles.instructionText}>Enter amount to receive</Text>
+          <Text style={styles.instructionText}>הזן סכום לקבלה</Text>
         </View>
 
         {/* Amount Input */}
@@ -97,7 +97,7 @@ function ReceiveScene() {
         {/* Action Buttons */}
         <View style={styles.actions}>
           <ActionButton
-            label="Show QR Code"
+            label="הצג קוד QR"
             onPress={handleShowQR}
             variant="primary"
             fullWidth
@@ -106,7 +106,7 @@ function ReceiveScene() {
           />
           <View style={styles.buttonSpacer} />
           <ActionButton
-            label="Copy Payment Link"
+            label="העתק קישור לתשלום"
             onPress={handleCopyLink}
             variant="secondary"
             fullWidth

@@ -59,7 +59,7 @@ function SendScene() {
     if (!isFormValid) return;
 
     if (!user?.passkeyRawId || !user?.walletAddress) {
-      Alert.alert('Error', 'Please log in');
+      Alert.alert('שגיאה', 'אנא התחבר');
       return;
     }
 
@@ -173,7 +173,7 @@ function SendScene() {
       poll();
     } catch (error) {
       console.error('❌ Error sending:', error);
-      Alert.alert('Error', `Failed to send: ${error instanceof Error ? error.message : String(error)}`);
+      Alert.alert('שגיאה', `נכשל בשליחה: ${error instanceof Error ? error.message : String(error)}`);
       setIsSending(false);
     }
   };
@@ -209,7 +209,7 @@ function SendScene() {
       <View style={styles.content}>
         {/* Recipient Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Recipient Address</Text>
+          <Text style={styles.inputLabel}>כתובת נמען</Text>
           <TextInput
             style={styles.input}
             placeholder=""
@@ -224,7 +224,7 @@ function SendScene() {
 
         {/* Amount Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Amount (COIL)</Text>
+          <Text style={styles.inputLabel}>כמות (COIL)</Text>
           <TextInput
             style={[styles.input, isAmountTooHigh && styles.inputError]}
             placeholder=""
@@ -237,10 +237,10 @@ function SendScene() {
           />
           <View style={styles.inlineInfoRow}>
             <View style={{ flex: 1 }} />
-            <Text style={styles.availableText}>Available balance: {formatEther(available)}</Text>
+            <Text style={styles.availableText}>יתרה זמינה: {formatEther(available)}</Text>
           </View>
           {isAmountTooHigh && (
-            <Text style={styles.errorText}>Amount exceeds available balance</Text>
+            <Text style={styles.errorText}>הכמות עולה על היתרה הזמינה</Text>
           )}
         </View>
 
@@ -252,7 +252,7 @@ function SendScene() {
         {/* Send Button */}
         <View style={styles.actions}>
           <ActionButton
-            label={isSending ? 'Sending...' : 'Send'}
+            label={isSending ? 'שולח...' : 'שלח'}
             onPress={handleSend}
             variant="primary"
             fullWidth

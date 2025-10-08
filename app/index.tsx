@@ -18,25 +18,25 @@ export default function WalletCreationScreen() {
 
     try {
       // 1. Create passkey
-      setProgressText('Creating passkey...');
+      setProgressText('יוצר passkey...');
       console.log('🔐 Step 1: Creating passkey...');
       const { publicKey, rawId } = await webAuthnService.createPasskey('My Wallet');
       console.log('✅ Passkey created');
 
       // 2. Calculate wallet address (before deployment)
-      setProgressText('Calculating wallet address...');
+      setProgressText('מחשב כתובת ארנק...');
       console.log('🧮 Step 2: Calculating wallet address...');
       const walletAddress = await smartWalletService.getWalletAddress(publicKey);
       console.log('✅ Wallet address:', walletAddress);
 
       // 3. Deploy wallet and claim welcome bonus (101 COIL tokens)
-      setProgressText('Deploying wallet and claiming bonus...');
+      setProgressText('יוצר ארנק ושולח בונוס הצטרפות...');
       console.log('🏗️ Step 3: Deploying wallet and claiming 101 COIL welcome bonus...');
       await smartWalletService.deployWalletAndClaimWelcomeBonus(publicKey, rawId);
       console.log('✅ Wallet deployed and welcome bonus claimed');
 
       // Wait for deployment to be mined
-      setProgressText('Waiting for deployment...');
+      setProgressText('ממתין לשליחה...');
       console.log('⏳ Waiting 30 seconds for deployment to be mined...');
       await new Promise(resolve => setTimeout(resolve, 30000));
 
@@ -57,8 +57,8 @@ export default function WalletCreationScreen() {
     } catch (error) {
       console.error('❌ Wallet creation failed:', error);
       Alert.alert(
-        'Error',
-        `Failed to create wallet: ${error instanceof Error ? error.message : String(error)}`
+        'שגיאה',
+        `נכשל ביצירת ארנק: ${error instanceof Error ? error.message : String(error)}`
       );
     } finally {
       setIsCreating(false);

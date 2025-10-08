@@ -68,7 +68,7 @@ function RedeemScene() {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Coupon Code"
+              placeholder="קוד קופון"
               placeholderTextColor={colors.textSecondary}
               value={couponCode}
               onChangeText={(text) => {
@@ -108,7 +108,7 @@ function RedeemScene() {
             />
           ) : (
             <ActionButton
-              label="Redeem"
+              label="מימוש"
               onPress={handleRedeem}
               variant="primary"
               fullWidth
