@@ -26,7 +26,7 @@ function ActionButton({
   shape = 'square',
 }: ActionButtonProps) {
   const backgroundColor = variant === 'primary' ? colors.primary : colors.primaryLight;
-  const iconColor = variant === 'primary' ? colors.background : colors.white;
+  const iconColor = colors.white;
 
   // Determine border radius based on shape
   const getBorderRadius = () => {
