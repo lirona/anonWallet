@@ -18,6 +18,7 @@ const config = {
   rpcUrl: process.env.EXPO_PUBLIC_RPC_URL!,
   chainId: process.env.EXPO_PUBLIC_CHAIN_ID!,
   factoryContractAddress: process.env.EXPO_PUBLIC_FACTORY_CONTRACT_ADDRESS!,
+  tokenAddress: process.env.EXPO_PUBLIC_TOKEN_ADDRESS!,
   relayerPrivateKey: process.env.EXPO_PUBLIC_RELAYER_PRIVATE_KEY!,
   pimlicoApiKey: process.env.EXPO_PUBLIC_PIMLICO_API_KEY!,
 
@@ -33,6 +34,7 @@ const config = {
   rpcUrl: string;
   chainId: string;
   factoryContractAddress: string;
+  tokenAddress: string;
   relayerPrivateKey: string;
   pimlicoApiKey: string;
   appId: string;

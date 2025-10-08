@@ -1,87 +1,153 @@
 import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { formatUnits, hexToBigInt, type Address } from 'viem';
 
 import ActionButton from '@/components/elements/ActionButton';
 import QRScannerModal from '@/components/elements/QRScannerModal';
 import TransactionItem from '@/components/elements/TransactionItem';
 import { colors } from '@/theme/colors';
 import type { Transaction } from '@/types/Transaction';
-import { useAppSlice } from '@/slices';
+import { useAppSlice, useTokenSlice } from '@/slices';
 import { useDataPersist, DataPersistKeys } from '@/hooks/useDataPersist';
+import { tokenService, type TokenTransfer } from '@/services';
 
-// Hardcoded data as per requirements
-const BALANCE = 1234.56;
-
-const TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    type: 'received',
-    amount: 100.00,
-    timestamp: '2024-03-15 10:30 AM',
-  },
-  {
-    id: '2',
-    type: 'sent',
-    amount: 50.00,
-    timestamp: '2024-03-14 02:45 PM',
-  },
-  {
-    id: '3',
-    type: 'received',
-    amount: 250.00,
-    timestamp: '2024-03-13 09:15 AM',
-  },
-  {
-    id: '4',
-    type: 'sent',
-    amount: 75.00,
-    timestamp: '2024-03-12 04:00 PM',
-  },
-  {
-    id: '5',
-    type: 'received',
-    amount: 150.00,
-    timestamp: '2024-03-11 11:20 AM',
-  },
-  {
-    id: '6',
-    type: 'sent',
-    amount: 120.00,
-    timestamp: '2024-03-10 03:30 PM',
-  },
-  {
-    id: '7',
-    type: 'received',
-    amount: 300.00,
-    timestamp: '2024-03-09 08:15 AM',
-  },
-  {
-    id: '8',
-    type: 'sent',
-    amount: 85.50,
-    timestamp: '2024-03-08 01:20 PM',
-  },
-  {
-    id: '9',
-    type: 'received',
-    amount: 200.00,
-    timestamp: '2024-03-07 10:45 AM',
-  },
-  {
-    id: '10',
-    type: 'sent',
-    amount: 95.00,
-    timestamp: '2024-03-06 05:00 PM',
-  },
-];
+/**
+ * Convert TokenTransfer to Transaction format
+ */
+const convertToTransaction = (transfer: TokenTransfer, walletAddress: string): Transaction => {
+  const isSent = transfer.from.toLowerCase() === walletAddress.toLowerCase();
+  return {
+    id: transfer.transactionHash,
+    type: isSent ? 'sent' : 'received',
+    amount: parseFloat(formatUnits(hexToBigInt(transfer.value), 18)),
+    timestamp: transfer.timestamp
+      ? new Date(transfer.timestamp * 1000).toLocaleString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Pending',
+  };
+};
 
 function WalletHomeScene() {
-  const { dispatch, reset } = useAppSlice();
+  const { user, dispatch, reset } = useAppSlice();
+  const tokenSlice = useTokenSlice();
   const { removePersistData } = useDataPersist();
   const [showScannerModal, setShowScannerModal] = React.useState(false);
+
+  // Fetch balance and transactions on mount
+  React.useEffect(() => {
+    if (!user?.walletAddress) return;
+
+    const fetchBalanceAndTransactions = async () => {
+      try {
+        // Fetch balance
+        tokenSlice.dispatch(tokenSlice.setLoadingBalance(true));
+        const [balance, balanceRaw] = await Promise.all([
+          tokenService.getBalance(user.walletAddress as Address),
+          tokenService.getBalanceRaw(user.walletAddress as Address),
+        ]);
+        tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
+        tokenSlice.dispatch(tokenSlice.setLoadingBalance(false));
+
+        // Fetch latest 10 transactions (from current block - 10 to current block)
+        tokenSlice.dispatch(tokenSlice.setLoadingTransactions(true));
+        const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
+          limit: 10,
+        });
+        tokenSlice.dispatch(tokenSlice.setTransactions(transfers));
+        tokenSlice.dispatch(tokenSlice.setLoadingTransactions(false));
+      } catch (error) {
+        console.error('Error fetching balance and transactions:', error);
+        tokenSlice.dispatch(tokenSlice.setError(error instanceof Error ? error.message : 'Unknown error'));
+        tokenSlice.dispatch(tokenSlice.setLoadingBalance(false));
+        tokenSlice.dispatch(tokenSlice.setLoadingTransactions(false));
+      }
+    };
+
+    fetchBalanceAndTransactions();
+  }, [user?.walletAddress]);
+
+  // Poll for balance and new transactions every 5 seconds
+  React.useEffect(() => {
+    if (!user?.walletAddress || !tokenSlice.lastFetchedBlock) return;
+
+    const pollBalanceAndTransactions = async () => {
+      try {
+        // Fetch balance
+        const [balance, balanceRaw] = await Promise.all([
+          tokenService.getBalance(user.walletAddress as Address),
+          tokenService.getBalanceRaw(user.walletAddress as Address),
+        ]);
+        tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
+
+        // Get current block to avoid fetching blocks that don't exist yet
+        const currentBlock = await tokenService.getCurrentBlock();
+        const lastBlock = hexToBigInt(tokenSlice.lastFetchedBlock);
+
+        // Only fetch if there are new blocks
+        if (currentBlock > lastBlock) {
+          // Fetch transactions from the last fetched block + 1 to current block
+          const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
+            fromBlock: lastBlock + 1n,
+            toBlock: currentBlock,
+            limit: 10,
+          });
+
+          // Prepend new transactions if any
+          if (transfers.length > 0) {
+            tokenSlice.dispatch(tokenSlice.prependTransactions(transfers));
+          } else {
+            // No new transactions, but update lastFetchedBlock to current block
+            tokenSlice.dispatch(tokenSlice.setLastFetchedBlock(`0x${currentBlock.toString(16)}`));
+          }
+        }
+      } catch (error) {
+        console.error('Error polling balance and transactions:', error);
+      }
+    };
+
+    // Set up polling interval (every 5 seconds)
+    const intervalId = setInterval(pollBalanceAndTransactions, 5000);
+
+    // Cleanup on unmount
+    return () => clearInterval(intervalId);
+  }, [user?.walletAddress, tokenSlice.lastFetchedBlock]);
+
+  // Load more transactions for infinite scroll
+  const handleLoadMore = async () => {
+    if (!user?.walletAddress || tokenSlice.isLoadingMore || tokenSlice.transactions.length === 0) return;
+
+    try {
+      tokenSlice.dispatch(tokenSlice.setLoadingMore(true));
+
+      // Get the oldest transaction's block number
+      const oldestTransaction = tokenSlice.transactions[tokenSlice.transactions.length - 1];
+      const oldestBlock = hexToBigInt(oldestTransaction.blockNumber);
+
+      // Fetch 10 more transactions before the oldest block
+      const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
+        toBlock: oldestBlock - 1n,
+        limit: 10,
+      });
+
+      // Append older transactions
+      if (transfers.length > 0) {
+        tokenSlice.dispatch(tokenSlice.appendTransactions(transfers));
+      }
+
+      tokenSlice.dispatch(tokenSlice.setLoadingMore(false));
+    } catch (error) {
+      console.error('Error loading more transactions:', error);
+      tokenSlice.dispatch(tokenSlice.setLoadingMore(false));
+    }
+  };
 
   const handleScanQR = () => {
     setShowScannerModal(true);
@@ -182,12 +248,16 @@ function WalletHomeScene() {
 
       {/* Balance Section */}
       <View style={styles.balanceSection}>
-        <Text style={styles.balanceAmount}>
-          {BALANCE.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </Text>
+        {tokenSlice.isLoadingBalance ? (
+          <ActivityIndicator size="large" color={colors.white} />
+        ) : (
+          <Text style={styles.balanceAmount}>
+            {parseFloat(tokenSlice.balance).toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
+        )}
         <Text style={styles.balanceLabel}>Available Balance</Text>
       </View>
 
@@ -201,12 +271,27 @@ function WalletHomeScene() {
       {/* Transactions Section */}
       <View style={styles.transactionsSection}>
         <Text style={styles.transactionsHeader}>Transactions</Text>
-        <FlatList
-          data={TRANSACTIONS}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <TransactionItem transaction={item} />}
-          showsVerticalScrollIndicator={false}
-        />
+        {tokenSlice.isLoadingTransactions ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.white} />
+          </View>
+        ) : (
+          <FlatList
+            data={tokenSlice.transactions.map(t => convertToTransaction(t, user?.walletAddress || ''))}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <TransactionItem transaction={item} />}
+            showsVerticalScrollIndicator={false}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              tokenSlice.isLoadingMore ? (
+                <View style={styles.loadingMoreContainer}>
+                  <ActivityIndicator size="small" color={colors.white} />
+                </View>
+              ) : null
+            }
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -263,6 +348,16 @@ const styles = StyleSheet.create({
     color: colors.white,
     paddingHorizontal: 20,
     marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
 });
 
