@@ -1,18 +1,18 @@
-import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatUnits, hexToBigInt, type Address } from 'viem';
 
 import ActionButton from '@/components/elements/ActionButton';
 import QRScannerModal from '@/components/elements/QRScannerModal';
 import TransactionItem from '@/components/elements/TransactionItem';
+import { DataPersistKeys, useDataPersist } from '@/hooks/useDataPersist';
+import { tokenService, type TokenTransfer } from '@/services';
+import { useAppSlice, useTokenSlice } from '@/slices';
 import { colors } from '@/theme/colors';
 import type { Transaction } from '@/types/Transaction';
-import { useAppSlice, useTokenSlice } from '@/slices';
-import { useDataPersist, DataPersistKeys } from '@/hooks/useDataPersist';
-import { tokenService, type TokenTransfer } from '@/services';
 
 /**
  * Convert TokenTransfer to Transaction format
