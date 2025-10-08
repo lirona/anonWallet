@@ -1,16 +1,19 @@
 import {
   createPublicClient,
-  http,
-  type Address,
-  type Hex,
   formatUnits,
+  http,
   parseAbiItem,
   toHex,
+  type Address,
+  type Hex,
 } from 'viem';
 import { sepolia } from 'viem/chains';
 
-import COIL_ABI from './COIL.abi.json';
 import config from '@/utils/config';
+import COIL_ABI_FILE from './COIL.abi.json';
+
+// Extract the ABI array from the JSON file
+const COIL_ABI = COIL_ABI_FILE.abi;
 
 export interface TokenTransfer {
   from: Address;
@@ -28,6 +31,7 @@ export interface TokenTransfer {
 class TokenService {
   private publicClient;
   private tokenAddress: Address;
+  private readonly POLLING_BLOCK_RANGE = 9n;
 
   constructor() {
     // Initialize blockchain client
@@ -37,6 +41,19 @@ class TokenService {
     });
 
     this.tokenAddress = config.tokenAddress as Address;
+  }
+
+  /**
+   * Get current block number from the blockchain
+   * @returns Current block number as bigint
+   */
+  async getCurrentBlock(): Promise<bigint> {
+    try {
+      return await this.publicClient.getBlockNumber();
+    } catch (error) {
+      console.error('Error fetching current block number:', error);
+      throw error;
+    }
   }
 
   /**
@@ -103,8 +120,8 @@ class TokenService {
       const latestBlock =
         toBlock === 'latest' ? await this.publicClient.getBlockNumber() : toBlock;
 
-      // Calculate fromBlock if not provided (get last 1000 blocks)
-      const calculatedFromBlock = fromBlock ?? latestBlock - 1000n;
+      // Calculate fromBlock if not provided (get last 10 blocks for polling)
+      const calculatedFromBlock = fromBlock ?? latestBlock - this.POLLING_BLOCK_RANGE;
 
       // Fetch Transfer events where address is sender or receiver
       const [sentLogs, receivedLogs] = await Promise.all([

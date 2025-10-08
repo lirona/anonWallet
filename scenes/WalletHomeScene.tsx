@@ -56,7 +56,7 @@ function WalletHomeScene() {
         tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
         tokenSlice.dispatch(tokenSlice.setLoadingBalance(false));
 
-        // Fetch latest 10 transactions
+        // Fetch latest 10 transactions (from current block - 10 to current block)
         tokenSlice.dispatch(tokenSlice.setLoadingTransactions(true));
         const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
           limit: 10,
@@ -74,29 +74,47 @@ function WalletHomeScene() {
     fetchBalanceAndTransactions();
   }, [user?.walletAddress]);
 
-  // Poll for new transactions every 10 seconds
+  // Poll for balance and new transactions every 5 seconds
   React.useEffect(() => {
-    if (!user?.walletAddress) return;
+    if (!user?.walletAddress || !tokenSlice.lastFetchedBlock) return;
 
-    const pollTransactions = async () => {
+    const pollBalanceAndTransactions = async () => {
       try {
-        // Fetch transactions from the last fetched block onwards
-        const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
-          fromBlock: tokenSlice.lastFetchedBlock ? hexToBigInt(tokenSlice.lastFetchedBlock) + 1n : undefined,
-          limit: 10,
-        });
+        // Fetch balance
+        const [balance, balanceRaw] = await Promise.all([
+          tokenService.getBalance(user.walletAddress as Address),
+          tokenService.getBalanceRaw(user.walletAddress as Address),
+        ]);
+        tokenSlice.dispatch(tokenSlice.setBalance({ balance, balanceRaw }));
 
-        // Prepend new transactions if any
-        if (transfers.length > 0) {
-          tokenSlice.dispatch(tokenSlice.prependTransactions(transfers));
+        // Get current block to avoid fetching blocks that don't exist yet
+        const currentBlock = await tokenService.getCurrentBlock();
+        const lastBlock = hexToBigInt(tokenSlice.lastFetchedBlock);
+
+        // Only fetch if there are new blocks
+        if (currentBlock > lastBlock) {
+          // Fetch transactions from the last fetched block + 1 to current block
+          const transfers = await tokenService.getTransfers(user.walletAddress as Address, {
+            fromBlock: lastBlock + 1n,
+            toBlock: currentBlock,
+            limit: 10,
+          });
+
+          // Prepend new transactions if any
+          if (transfers.length > 0) {
+            tokenSlice.dispatch(tokenSlice.prependTransactions(transfers));
+          } else {
+            // No new transactions, but update lastFetchedBlock to current block
+            tokenSlice.dispatch(tokenSlice.setLastFetchedBlock(`0x${currentBlock.toString(16)}`));
+          }
         }
       } catch (error) {
-        console.error('Error polling transactions:', error);
+        console.error('Error polling balance and transactions:', error);
       }
     };
 
-    // Set up polling interval
-    const intervalId = setInterval(pollTransactions, 10000);
+    // Set up polling interval (every 5 seconds)
+    const intervalId = setInterval(pollBalanceAndTransactions, 5000);
 
     // Cleanup on unmount
     return () => clearInterval(intervalId);
