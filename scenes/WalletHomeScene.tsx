@@ -297,19 +297,19 @@ function WalletHomeScene() {
             })}
           </Text>
         )}
-        <Text style={styles.balanceLabel}>Available Balance</Text>
+        <Text style={styles.balanceLabel}>יתרה זמינה</Text>
       </View>
 
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
-        <ActionButton icon="qr-code-scanner" label="Scan QR" onPress={handleScanQR} shape="square" />
-        <ActionButton icon="call-received" label="Receive" onPress={handleReceive} shape="square" />
-        <ActionButton icon="redeem" label="Redeem" onPress={handleRedeem} variant="primary" shape="square" />
+        <ActionButton icon="qr-code-scanner" label="סריקת QR" onPress={handleScanQR} variant="primary" shape="square" />
+        <ActionButton icon="call-received" label="קבלה" onPress={handleReceive} variant="primary" shape="square" />
+        <ActionButton icon="redeem" label="מימוש קופון" onPress={handleRedeem} variant="primary" shape="square" />
       </View>
 
       {/* Transactions Section */}
       <View style={styles.transactionsSection}>
-        <Text style={styles.transactionsHeader}>Transactions</Text>
+        <Text style={styles.transactionsHeader}>פעולות אחרונות:</Text>
         {tokenSlice.isLoadingTransactions ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.white} />
@@ -327,7 +327,7 @@ function WalletHomeScene() {
             // ...existing code...
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No transactions yet</Text>
+                <Text style={styles.emptyText}>אין פעולות</Text>
               </View>
             }
           />
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.white,
+    color: colors.primary,
     letterSpacing: 2,
   },
   headerIcons: {
