@@ -1,28 +1,53 @@
 import {
   createPublicClient,
-  createWalletClient,
-  http,
-  type Hex,
-  type PublicClient,
-  type WalletClient,
   encodeFunctionData,
-  parseEther,
-  parseGwei,
-  keccak256
+  http,
+  toHex,
+  type Hex
 } from 'viem';
 import { sepolia } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
-import { get } from 'react-native-passkeys';
 
+import { ENTRY_POINT_ABI, ENTRY_POINT_ADDRESS } from '@/constants/entryPoint';
 import { FACTORY_ABI } from '@/contracts/abi/factory';
-import { ENTRY_POINT_ADDRESS, ENTRY_POINT_ABI } from '@/constants/entryPoint';
-import { type UserOperation, type UserOperationGasEstimate } from '@/types/userOperation';
+import COIL_ABI_FILE from '@/services/token/COIL.abi.json';
+import { type UserOperation } from '@/types/userOperation';
 import config from '@/utils/config';
 
-// Pimlico bundler client
+// Extract the ABI array from the JSON file
+const COIL_ABI = COIL_ABI_FILE.abi;
+
+// SimpleAccount executeBatch function ABI (matches contracts/src/SimpleAccount.sol)
+// executeBatch(Call[] calls) where Call = { dest: address, value: uint256, data: bytes }
+const SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI = [
+  {
+    inputs: [
+      {
+        name: 'calls',
+        type: 'tuple[]',
+        components: [
+          { name: 'dest', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'data', type: 'bytes' },
+        ],
+      },
+    ],
+    name: 'executeBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
+
+// Pimlico bundler client (v1 - for submitting user operations)
 const bundlerClient = createPublicClient({
   chain: sepolia,
   transport: http(`https://api.pimlico.io/v1/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
+});
+
+// Pimlico paymaster client (v2 - for sponsorship requests)
+const paymasterClient = createPublicClient({
+  chain: sepolia,
+  transport: http(`https://api.pimlico.io/v2/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
 });
 
 // Regular clients
@@ -31,12 +56,6 @@ const publicClient = createPublicClient({
   transport: http(config.rpcUrl),
 });
 
-const account = privateKeyToAccount(config.relayerPrivateKey as Hex);
-const walletClient = createWalletClient({
-  account,
-  chain: sepolia,
-  transport: http(config.rpcUrl),
-});
 
 /**
  * Get smart wallet address using factory's getAddress function
@@ -93,66 +112,94 @@ export function generateInitCode(publicKey: readonly [Hex, Hex]): Hex {
 }
 
 /**
- * Generate callData for ETH transfer (SimpleAccount execute function)
+ * Generate callData for ERC20 token transfer (COIL)
+ * Wraps ERC20 transfer() in SimpleAccount execute() function
+ * @param to - Recipient address
+ * @param amount - Token amount (in wei, 18 decimals)
+ * @returns Encoded callData for UserOperation
  */
-export function generateTransferCallData(to: Hex, amount: bigint): Hex {
-  // SimpleAccount execute(address dest, uint256 value, bytes calldata func)
-  // For ETH transfer, func is empty bytes
+export function generateERC20TransferCallData(to: Hex, amount: bigint): Hex {
+  const tokenAddress = config.tokenAddress as Hex;
+
+  // 1. Encode ERC20 transfer(to, amount)
+  const erc20TransferData = encodeFunctionData({
+    abi: COIL_ABI,
+    functionName: 'transfer',
+    args: [to, amount],
+  });
+
+  // 2. Wrap in SimpleAccount executeBatch([{ dest: tokenAddress, value: 0, data: erc20TransferData }])
+  // value = 0 because we're not sending ETH, just calling the token contract
   return encodeFunctionData({
-    abi: [
-      {
-        inputs: [
-          { name: 'dest', type: 'address' },
-          { name: 'value', type: 'uint256' },
-          { name: 'func', type: 'bytes' }
-        ],
-        name: 'execute',
-        outputs: [],
-        stateMutability: 'nonpayable',
-        type: 'function',
-      }
-    ],
-    functionName: 'execute',
-    args: [to, amount, '0x'],
+    abi: SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI,
+    functionName: 'executeBatch',
+    args: [[{ dest: tokenAddress, value: 0n, data: erc20TransferData }]],
   });
 }
 
 /**
- * Estimate UserOperation gas using Pimlico
+ * Generate callData for claiming welcome bonus from COIL token
+ * Wraps distributeWelcomeBonus() in SimpleAccount execute() function
+ * @returns Encoded callData for UserOperation
  */
-export async function estimateUserOperationGas(userOp: UserOperation): Promise<UserOperationGasEstimate> {
-  // Convert UserOperation to hex format for RPC call
-  const userOpHex = {
-    sender: userOp.sender,
-    nonce: `0x${userOp.nonce.toString(16)}` as Hex,
-    initCode: userOp.initCode,
-    callData: userOp.callData,
-    callGasLimit: `0x${userOp.callGasLimit.toString(16)}` as Hex,
-    verificationGasLimit: `0x${userOp.verificationGasLimit.toString(16)}` as Hex,
-    preVerificationGas: `0x${userOp.preVerificationGas.toString(16)}` as Hex,
-    maxFeePerGas: `0x${userOp.maxFeePerGas.toString(16)}` as Hex,
-    maxPriorityFeePerGas: `0x${userOp.maxPriorityFeePerGas.toString(16)}` as Hex,
-    paymasterAndData: userOp.paymasterAndData,
-    signature: userOp.signature,
-  };
+export function generateWelcomeBonusCallData(): Hex {
+  const tokenAddress = config.tokenAddress as Hex;
 
-  const estimate = await bundlerClient.request({
-    method: 'eth_estimateUserOperationGas' as any,
-    params: [userOpHex, ENTRY_POINT_ADDRESS],
+  // 1. Encode distributeWelcomeBonus() - no parameters needed
+  const bonusCallData = encodeFunctionData({
+    abi: COIL_ABI,
+    functionName: 'distributeWelcomeBonus',
   });
 
-  return estimate as unknown as UserOperationGasEstimate;
+  // 2. Wrap in SimpleAccount executeBatch([{ dest: tokenAddress, value: 0, data: bonusCallData }])
+  return encodeFunctionData({
+    abi: SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI,
+    functionName: 'executeBatch',
+    args: [[{ dest: tokenAddress, value: 0n, data: bonusCallData }]],
+  });
+}
+
+/**
+ * Get sponsored transaction gas estimates and paymaster data from Pimlico
+ * Returns hex values directly from paymaster (no conversion to bigint)
+ * Pure function that returns only the sponsorship-related fields
+ */
+export async function getSponsoredTxGasEstimateAndPaymasterData(userOp: UserOperation): Promise<{
+  paymasterAndData: Hex;
+  callGasLimit: Hex;
+  verificationGasLimit: Hex;
+  preVerificationGas: Hex;
+}> {
+  const sponsorship = await paymasterClient.request({
+    method: 'pm_sponsorUserOperation' as any,
+    params: [userOp, ENTRY_POINT_ADDRESS],
+  }) as any;
+
+  console.log('✅ Sponsorship received:', {
+    paymasterAndData: sponsorship.paymasterAndData?.substring(0, 20) + '...',
+    callGasLimit: sponsorship.callGasLimit,
+    verificationGasLimit: sponsorship.verificationGasLimit,
+    preVerificationGas: sponsorship.preVerificationGas
+  });
+
+  // Return hex values directly from paymaster (no conversion)
+  return {
+    paymasterAndData: sponsorship.paymasterAndData as Hex,
+    callGasLimit: sponsorship.callGasLimit as Hex,
+    verificationGasLimit: sponsorship.verificationGasLimit as Hex,
+    preVerificationGas: sponsorship.preVerificationGas as Hex,
+  };
 }
 
 /**
  * Get current gas prices
  */
-export async function getGasPrices(): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
+export async function getGasPrices(): Promise<{ maxFeePerGas: Hex; maxPriorityFeePerGas: Hex }> {
   const feeData = await publicClient.estimateFeesPerGas();
 
   return {
-    maxFeePerGas: feeData.maxFeePerGas || parseGwei('20'),
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || parseGwei('1'),
+    maxFeePerGas: toHex(feeData.maxFeePerGas),
+    maxPriorityFeePerGas: toHex(feeData.maxPriorityFeePerGas),
   };
 }
 
@@ -160,24 +207,10 @@ export async function getGasPrices(): Promise<{ maxFeePerGas: bigint; maxPriorit
  * Submit UserOperation to Pimlico bundler
  */
 export async function submitUserOperation(userOp: UserOperation): Promise<Hex> {
-  // Convert to hex format
-  const userOpHex = {
-    sender: userOp.sender,
-    nonce: `0x${userOp.nonce.toString(16)}` as Hex,
-    initCode: userOp.initCode,
-    callData: userOp.callData,
-    callGasLimit: `0x${userOp.callGasLimit.toString(16)}` as Hex,
-    verificationGasLimit: `0x${userOp.verificationGasLimit.toString(16)}` as Hex,
-    preVerificationGas: `0x${userOp.preVerificationGas.toString(16)}` as Hex,
-    maxFeePerGas: `0x${userOp.maxFeePerGas.toString(16)}` as Hex,
-    maxPriorityFeePerGas: `0x${userOp.maxPriorityFeePerGas.toString(16)}` as Hex,
-    paymasterAndData: userOp.paymasterAndData,
-    signature: userOp.signature,
-  };
 
   const userOpHash: Hex = await bundlerClient.request({
     method: 'eth_sendUserOperation' as any,
-    params: [userOpHex, ENTRY_POINT_ADDRESS],
+    params: [userOp, ENTRY_POINT_ADDRESS],
   });
 
   return userOpHash;

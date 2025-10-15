@@ -4,7 +4,15 @@ out = "out"
 libs = ["lib"]
 
 bytecode_hash = "none"
-solc_version = "0.8.21"
+
+[profile.token]
+src = "src/token"
+test = "test/token"
+script = "script/token"
+out = "out/token"
+libs = ["lib"]
+solc = "0.8.28"
+bytecode_hash = "none"
 
 [rpc_endpoints]
 base_goerli = "https://goerli.base.org"

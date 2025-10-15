@@ -2,20 +2,6 @@ import { type Hex } from 'viem';
 
 export interface UserOperation {
   sender: Hex;
-  nonce: bigint;
-  initCode: Hex;
-  callData: Hex;
-  callGasLimit: bigint;
-  verificationGasLimit: bigint;
-  preVerificationGas: bigint;
-  maxFeePerGas: bigint;
-  maxPriorityFeePerGas: bigint;
-  paymasterAndData: Hex;
-  signature: Hex;
-}
-
-export interface UserOperationAsHex {
-  sender: Hex;
   nonce: Hex;
   initCode: Hex;
   callData: Hex;

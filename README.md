@@ -23,13 +23,39 @@ A React Native wallet application built with Expo, featuring Account Abstraction
 - Node.js 18+ and npm
 - Expo CLI (`npm install -g @expo/cli`)
 - iOS Simulator (Xcode) for iOS development
-- Android Studio for Android development
+- Android Studio and Android SDK for Android development
 - ngrok account for WebAuthn domain association
 ```bash
 # macOS
 brew install ngrok
 
 # Or download from https://ngrok.com/download
+```
+
+### Android SDK Setup
+For Android development, you need to set the Android SDK location and add tools to PATH:
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+export ANDROID_HOME=$HOME/Library/Android/sdk  # macOS
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+
+# Linux
+# export ANDROID_HOME=$HOME/Android/Sdk
+# export PATH=$PATH:$ANDROID_HOME/platform-tools
+
+# Windows (CMD)
+# set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
+# set PATH=%PATH%;%ANDROID_HOME%\platform-tools
+
+# Windows (PowerShell)
+# $env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"
+# $env:PATH="$env:PATH;$env:ANDROID_HOME\platform-tools"
+```
+
+After adding, reload your shell:
+```bash
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
 ## API Keys Required
@@ -65,7 +91,7 @@ ngrok config add-authtoken YOUR_AUTH_TOKEN
 ### 1. Clone and Install Dependencies
 ```bash
 git clone <repository-url>
-cd anonWalletExpo
+cd anonWallet
 npm install
 ```
 
@@ -93,7 +119,7 @@ EXPO_PUBLIC_RELAYER_PRIVATE_KEY=0xYourPrivateKey
 EXPO_PUBLIC_PIMLICO_API_KEY=pim_your_api_key
 
 # iOS App ID
-EXPO_PUBLIC_APP_ID=demo.com.anonymous.anonWallet
+EXPO_PUBLIC_BUNDLE_ID=demo.com.anonymous.anonWallet
 
 # Your ngrok domain
 EXPO_PUBLIC_ASSOCIATED_DOMAIN=your-ngrok-domain.app
@@ -105,8 +131,7 @@ The WebAuthn flow requires a server to serve domain association files:
 ```bash
 # In a separate terminal
 cd associated-domain-server
-npm install
-node server.js
+npm install && npm start
 ```
 
 ### 4. Start ngrok
@@ -120,16 +145,42 @@ ngrok http 8080 --domain=your-app-12345.ngrok-free.app
 ngrok http 8080
 ```
 
+### 5. Configure Emulator/Simulator for Passkeys
+
+#### iOS Simulator Setup
+1. **Enable Face ID/Touch ID:**
+   - In iOS Simulator menu bar: **Features** → **Face ID** → **Enrolled** (toggle ON)
+   - During passkey prompt, use: **Features** → **Face ID** → **Matching Face** to authenticate
+
+#### Android Emulator Setup (Required)
+
+**⚠️ CRITICAL:** Passkeys on Android require proper emulator configuration. Without these steps, passkeys will silently fail to save.
+
+1. **Sign in with Google Account:**
+   - Open emulator
+   - Go to **Settings** → **Passwords & accounts** → **Add account** → **Google**
+   - Sign in with your Google account (required for Google Password Manager)
+
+2. **Set Device PIN/Password:**
+   - Go to **Settings** → **Security** → **Screen lock**
+   - Set a **PIN** or **Password** (swipe/pattern not sufficient)
+   - This is required for passkey storage on Android
+
+3. **Enable Biometric Authentication (Optional but Recommended):**
+   - Once PIN is set, go to **Settings** → **Security** → **Fingerprint**
+   - Follow enrollment wizard (you can use mouse clicks to simulate fingerprints)
+   - During passkey authentication, use the fingerprint sensor overlay or enter PIN
+
 ### 6. Run the Application
 
 For development:
 ```bash
 # iOS
-npx expo prebuild && npm run ios
+npm run prebuild && npm run ios
 ## To see logs go to Device -> Shake -> Devtools in the top bar of the iOS Simulator
 
-# Android
-npx expo prebuild && npm run android
+# Android (make sure ANDROID_HOME is in PATH)
+npm run prebuild && npm run android
 ```
 
 For production builds:

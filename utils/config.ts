@@ -16,21 +16,30 @@ const config = {
 
   // Blockchain configuration
   rpcUrl: process.env.EXPO_PUBLIC_RPC_URL!,
+  chainId: process.env.EXPO_PUBLIC_CHAIN_ID!,
   factoryContractAddress: process.env.EXPO_PUBLIC_FACTORY_CONTRACT_ADDRESS!,
+  tokenAddress: process.env.EXPO_PUBLIC_TOKEN_ADDRESS!,
   relayerPrivateKey: process.env.EXPO_PUBLIC_RELAYER_PRIVATE_KEY!,
   pimlicoApiKey: process.env.EXPO_PUBLIC_PIMLICO_API_KEY!,
 
   // WebAuthn configuration
-  appId: process.env.EXPO_PUBLIC_APP_ID!,
+  appId: process.env.EXPO_PUBLIC_BUNDLE_ID!,
   associatedDomain: process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN!,
+
+  // TEMPORARY: Hardcoded wallet for testing while passkeys are being debugged
+  // TODO: Remove this when passkeys are working on Android
+  hardcodedUserWallet: process.env.EXPO_PUBLIC_HARDCODED_USER_WALLET,
 } as const satisfies {
   env: Env;
   rpcUrl: string;
+  chainId: string;
   factoryContractAddress: string;
+  tokenAddress: string;
   relayerPrivateKey: string;
   pimlicoApiKey: string;
   appId: string;
   associatedDomain: string;
+  hardcodedUserWallet: string | undefined;
 };
 
 export default config;

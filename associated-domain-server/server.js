@@ -4,13 +4,10 @@ const cors = require('cors');
 const app = express();
 const port = 8080;
 
-// Load environment variables from parent project
-require('dotenv').config({ path: '../.env.local' });
-
-// Get environment variables
-const APP_ID = process.env.EXPO_PUBLIC_APP_ID || '4G5YQ8G38R.com.anonymous.CoilWalletExpo';
-const NGROK_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN || 'rosita-geoponic-dwain.ngrok-free.app';
-console.log(`Using App ID: ${APP_ID}`);
+// Environment variables are injected by dotenvx
+const BUNDLE_ID = process.env.EXPO_PUBLIC_BUNDLE_ID;
+const NGROK_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN;
+console.log(`Using Bundle ID: ${BUNDLE_ID}`);
 console.log(`Using Domain: ${NGROK_DOMAIN}`);
 
 // Enable CORS for all routes
@@ -31,7 +28,7 @@ const serveAASA = (req, res) => {
   
   const association = {
     "webcredentials": {
-      "apps": [APP_ID]
+      "apps": [BUNDLE_ID]
     }
   };
   
@@ -45,7 +42,10 @@ const serveAssetLinks = (req, res) => {
 
   const assetLinks = [
     {
-      "relation": ["delegate_permission/common.handle_all_urls"],
+      "relation": [
+        "delegate_permission/common.handle_all_urls",
+        "delegate_permission/common.get_login_creds"
+      ],
       "target": {
         "namespace": "android_app",
         "package_name": "com.anonymous.CoilWalletExpo",
