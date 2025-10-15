@@ -7,8 +7,10 @@ const port = 8080;
 // Environment variables are injected by dotenvx
 const BUNDLE_ID = process.env.EXPO_PUBLIC_BUNDLE_ID;
 const NGROK_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN;
+const ANDROID_SHA256_FINGERPRINT = process.env.EXPO_PUBLIC_ANDROID_SHA256_FINGERPRINT;
 console.log(`Using Bundle ID: ${BUNDLE_ID}`);
 console.log(`Using Domain: ${NGROK_DOMAIN}`);
+console.log(`Using Android SHA-256 Fingerprint: ${ANDROID_SHA256_FINGERPRINT}`);
 
 // Enable CORS for all routes
 app.use(cors());
@@ -48,9 +50,9 @@ const serveAssetLinks = (req, res) => {
       ],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.anonymous.CoilWalletExpo",
+        "package_name": BUNDLE_ID,
         "sha256_cert_fingerprints": [
-          "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+          ANDROID_SHA256_FINGERPRINT
         ]
       }
     }
