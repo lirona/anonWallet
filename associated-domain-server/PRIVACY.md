@@ -111,26 +111,6 @@ Standard account abstraction implementations expose critical user privacy inform
 
 ---
 
-## Privacy Metrics Comparison
-
-### Before (Direct to Pimlico):
-```
-Request 1: 203.0.113.45 → Pimlico
-Request 2: 203.0.113.45 → Pimlico (same IP!)
-Request 3: 203.0.113.45 → Pimlico (same IP!)
-```
-**Result**: All 3 requests clearly from same user
-
-### After (Through Tor Proxy):
-```
-Request 1: 185.220.101.42 (Tor exit in Germany) → Pimlico
-Request 2: 198.98.57.207 (Tor exit in USA) → Pimlico
-Request 3: 51.158.127.114 (Tor exit in France) → Pimlico
-```
-**Result**: Appears to be 3 different users in 3 countries
-
----
-
 ## Testing Privacy
 
 ### 1. Verify Tor is Running
@@ -145,32 +125,9 @@ Should show a Tor exit node IP, not your real IP.
 curl http://localhost:8080/privacy/status
 ```
 
-Response:
-```json
-{
-  "torConnected": true,
-  "torProxy": "socks5://127.0.0.1:9050",
-  "exitIP": "185.220.101.42",
-  "message": "Tor connection is working! Exit IP shown above."
-}
-```
-
 ### 3. View Privacy Metrics
 ```bash
 curl http://localhost:8080/privacy/metrics
-```
-
-Response:
-```json
-{
-  "totalRequests": 15,
-  "bundlerRequests": 10,
-  "paymasterRequests": 5,
-  "averageDelay": 687,
-  "torEnabled": true,
-  "errors": 0,
-  "uptime": 3600
-}
 ```
 
 ### 4. Test IP Rotation
@@ -256,22 +213,9 @@ Accept: application/json
 - Any custom headers
 
 ### Timing Obfuscation
-```javascript
-randomDelay(min=100, max=500) // milliseconds
-```
 - Prevents correlation via request timing
 - Makes traffic analysis harder
 - Small enough to not impact UX significantly
-
----
-
-## References
-
-- [ERC-4337: Account Abstraction](https://eips.ethereum.org/EIPS/eip-4337)
-- [Tor Project](https://www.torproject.org/)
-- [Tor Onion Routing](https://2019.www.torproject.org/about/overview.html.en)
-- [Pimlico Documentation](https://docs.pimlico.io/)
-- [Privacy-Enhancing Technologies](https://www.w3.org/TR/privacy-principles/)
 
 ---
 
