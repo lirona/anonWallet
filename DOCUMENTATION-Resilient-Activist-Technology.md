@@ -1,5 +1,7 @@
 # 🥷 Resilient Activist Technology
 
+## DEMO - https://www.loom.com/share/3cd198e119f94a4ba72af50949e8c326?sid=47dee2ef-43e9-4a47-84a0-5c0b7934d794
+
 ## Project Overview
  anonWallet was built by activists, for activists, as part of our bigger vision to create a secure community operating system that empowers activists to interact, organize, and trade freely within their communities. Being tech leaders in our activist community, and after creating a [privacy recommendation doc](https://docs.google.com/document/d/1cEIUkHSyYWG0B9wKeQRk2IgXKWflW0QkZzoSkHvndzw) for the community, we decided to take on the challenge and build this tool as part of the RealFi hackathon.
 
