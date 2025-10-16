@@ -15,6 +15,16 @@ https://www.loom.com/share/3cd198e119f94a4ba72af50949e8c326?sid=47dee2ef-43e9-4a
 
 ---
 
+## Privacy infrastructure bounties:
+
+- Private RPC Node Network
+- Private RPCs for Account Abstraction
+- Privacy-Focused Wallet Prototype
+
+- **Privacy architecture and Tor integration**: See `privacy.md`
+
+---
+
 ## Resilience, Security, and Usability
 
 ### Resilience
@@ -82,11 +92,6 @@ https://www.loom.com/share/3cd198e119f94a4ba72af50949e8c326?sid=47dee2ef-43e9-4a
 - Offline transaction queueing
 - Rotating bundler support
 - Multiple paymaster integration
-
-## Additional Resources
-
-- **Privacy Architecture**: See `privacy.md` for detailed Tor implementation
-- **Logos Forum Post**: [Forum discussion](#)
 
 ---
 
