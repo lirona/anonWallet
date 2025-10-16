@@ -266,7 +266,7 @@ function WalletHomeScene() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>COIL</Text>
+        <Text style={styles.logo}>🥷</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity onPress={handleSend}>
             <MaterialIcons name="send" size={24} color={colors.white} />

@@ -1,4 +1,4 @@
-# COIL Token Contract
+# ANON Token Contract
 
 A comprehensive ERC20 token with advanced features including role-based access control, pausability, capped supply, welcome bonuses, and coupon redemption.
 
@@ -8,7 +8,7 @@ A comprehensive ERC20 token with advanced features including role-based access c
 - **Capped Supply**: Maximum supply of 21 billion tokens (21,000,000,000 * 10^18 wei)
 - **Access Control**: Role-based permissions for different operations
 - **Pausable**: Emergency pause functionality for security
-- **Welcome Bonus**: One-time bonus for new users (101 COIL)
+- **Welcome Bonus**: One-time bonus for new users (101 ANON)
 - **Organization Distribution**: Bulk distribution to multiple addresses
 - **Governance Distribution**: Minting for governance purposes
 - **Coupon System**: Redeem tokens using unique coupon codes
@@ -92,7 +92,7 @@ source .env
 
 3. **Deploy the contract**:
 ```bash
-FOUNDRY_PROFILE=token forge script script/token/DeployCOIL.s.sol:DeployCOIL --rpc-url $SEPOLIA_RPC_URL --broadcast
+FOUNDRY_PROFILE=token forge script script/token/DeployANON.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast
 ```
 
 4. **Save the deployed contract address** from the output
@@ -102,7 +102,7 @@ FOUNDRY_PROFILE=token forge script script/token/DeployCOIL.s.sol:DeployCOIL --rp
 ⚠️ **WARNING**: Deploying to mainnet requires real ETH and is irreversible!
 
 ```bash
-FOUNDRY_PROFILE=token forge script script/token/DeployCOIL.s.sol:DeployCOIL --rpc-url $MAINNET_RPC_URL --broadcast --verify
+FOUNDRY_PROFILE=token forge script script/token/DeployANON.s.sol:Deploy --rpc-url $MAINNET_RPC_URL --broadcast --verify
 ```
 
 ## Verification
@@ -113,7 +113,7 @@ Verify the contract on Etherscan after deployment:
 FOUNDRY_PROFILE=token forge verify-contract \
   --chain sepolia \
   <CONTRACT_ADDRESS> \
-  src/token/COIL.sol:COIL \
+  src/token/ERC20.sol:ANON \
   --etherscan-api-key $ETHERSCAN_API_KEY
 ```
 
@@ -122,7 +122,7 @@ Example:
 FOUNDRY_PROFILE=token forge verify-contract \
   --chain sepolia \
   0x52BF349eAB9DACb0AC8C5980a4C4038C2751304a \
-  src/token/COIL.sol:COIL \
+  src/token/ERC20.sol:ANON \
   --etherscan-api-key $ETHERSCAN_API_KEY
 ```
 
@@ -146,7 +146,7 @@ cast call <CONTRACT_ADDRESS> "hasClaimedWelcomeBonus(address)(bool)" <ADDRESS> -
 
 #### Write Functions
 
-**Claim welcome bonus** (101 COIL):
+**Claim welcome bonus** (101 ACT):
 ```bash
 cast send <CONTRACT_ADDRESS> \
   "claimWelcomeBonus()" \
@@ -229,17 +229,17 @@ const { ethers } = require('ethers');
 const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-const COIL_ABI = [...]; // Import from COIL.abi.json
+const ANON_ABI = [...]; // Import from ANON.abi.json
 const contractAddress = '0x52BF349eAB9DACb0AC8C5980a4C4038C2751304a';
 
-const coil = new ethers.Contract(contractAddress, COIL_ABI, wallet);
+const anon = new ethers.Contract(contractAddress, ANON_ABI, wallet);
 
 // Read
-const balance = await coil.balanceOf(wallet.address);
+const balance = await anon.balanceOf(wallet.address);
 console.log('Balance:', ethers.formatEther(balance));
 
 // Write
-const tx = await coil.claimWelcomeBonus();
+const tx = await anon.claimWelcomeBonus();
 await tx.wait();
 console.log('Welcome bonus claimed!');
 ```
@@ -269,7 +269,7 @@ const contractAddress = '0x52BF349eAB9DACb0AC8C5980a4C4038C2751304a';
 // Read
 const balance = await publicClient.readContract({
   address: contractAddress,
-  abi: COIL_ABI,
+  abi: ANON_ABI,
   functionName: 'balanceOf',
   args: [account.address],
 });
@@ -277,7 +277,7 @@ const balance = await publicClient.readContract({
 // Write
 const hash = await walletClient.writeContract({
   address: contractAddress,
-  abi: COIL_ABI,
+  abi: ANON_ABI,
   functionName: 'claimWelcomeBonus',
 });
 ```
@@ -344,13 +344,13 @@ Total supply cannot exceed 21 billion tokens.
 contracts/
 ├── src/
 │   └── token/
-│       └── COIL.sol          # Main token contract
+│       └── ANON.sol          # Main token contract
 ├── script/
 │   └── token/
-│       └── DeployCOIL.s.sol  # Deployment script
+│       └── DeployANON.s.sol  # Deployment script
 ├── test/
 │   └── token/
-│       └── COIL.t.sol        # Comprehensive tests
+│       └── ANON.t.sol        # Comprehensive tests
 ├── foundry.toml              # Foundry configuration
 └── .env.example              # Environment template
 ```

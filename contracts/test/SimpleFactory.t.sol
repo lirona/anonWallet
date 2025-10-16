@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
 // use Openzeppelin v4.8.1 to avoid `Failed to resolve file` error
@@ -9,7 +9,7 @@ import {SimpleAccountFactory, User} from "src/SimpleAccountFactory.sol";
 import {SimpleAccount} from "src/SimpleAccount.sol";
 
 contract SimpleFactoryTest is Test {
-    using UserOperationLib for UserOperation;
+    using UserOperationLib for PackedUserOperation;
 
     EntryPoint public entrypoint;
     SimpleAccountFactory public factory;

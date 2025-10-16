@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
 import {Utils} from "test/Utils.sol";
@@ -10,7 +10,7 @@ import {SimpleAccountFactory} from "src/SimpleAccountFactory.sol";
 import {SimpleAccount, Call} from "src/SimpleAccount.sol";
 
 contract SendUserOpTest is Test {
-    using UserOperationLib for UserOperation;
+    using UserOperationLib for PackedUserOperation;
 
     EntryPoint public entryPoint;
     SimpleAccountFactory public factory;
@@ -35,10 +35,10 @@ contract SendUserOpTest is Test {
      * @param paymaster - if non-null, the paymaster that pays for this request.
      * @param nonce - the nonce value from the request.
      * @param success - true if the sender transaction succeeded, false if reverted.
-     * @param actualGasCost - actual amount paid (by account or paymaster) for this UserOperation.
-     * @param actualGasUsed - total gas used by this UserOperation (including preVerification, creation, validation and execution).
+     * @param actualGasCost - actual amount paid (by account or paymaster) for this PackedUserOperation.
+     * @param actualGasUsed - total gas used by this PackedUserOperation (including preVerification, creation, validation and execution).
      */
-    event UserOperationEvent(
+    event PackedUserOperationEvent(
         bytes32 indexed userOpHash,
         address indexed sender,
         address indexed paymaster,
@@ -83,7 +83,7 @@ contract SendUserOpTest is Test {
         vm.deal(address(account), 1 ether);
 
         // dummy op
-        UserOperation memory op = UserOperation({
+        PackedUserOperation memory op = PackedUserOperation({
             sender: address(0),
             nonce: 0,
             initCode: hex"",
@@ -110,10 +110,10 @@ contract SendUserOpTest is Test {
         // add signature to op after calculating hash
         op.signature = ownerSig;
 
-        UserOperation[] memory ops = new UserOperation[](1);
+        PackedUserOperation[] memory ops = new PackedUserOperation[](1);
         ops[0] = op;
         vm.expectEmit(true, true, true, false);
-        emit UserOperationEvent(
+        emit PackedUserOperationEvent(
             hash,
             address(account),
             address(0),
@@ -165,7 +165,7 @@ contract SendUserOpTest is Test {
         );
 
         // account not deployed yet
-        // we want to test the initCode feature of UserOperation
+        // we want to test the initCode feature of PackedUserOperation
         SimpleAccount account = SimpleAccount(
             payable(0xa3ec6EEeDb3bBcAA232e5a8836A5745455098327)
         );
@@ -190,7 +190,7 @@ contract SendUserOpTest is Test {
         );
 
         // dummy op
-        UserOperation memory op = UserOperation({
+        PackedUserOperation memory op = PackedUserOperation({
             sender: address(0),
             nonce: 0,
             initCode: hex"",
@@ -218,11 +218,11 @@ contract SendUserOpTest is Test {
         // compute balance before userOp validation and execution
         uint256 balanceBefore = address(otherAccount).balance;
 
-        UserOperation[] memory ops = new UserOperation[](1);
+        PackedUserOperation[] memory ops = new PackedUserOperation[](1);
         ops[0] = op;
 
         vm.expectEmit(true, true, true, false);
-        emit UserOperationEvent(
+        emit PackedUserOperationEvent(
             hash,
             address(account),
             address(0),

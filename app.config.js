@@ -4,12 +4,12 @@ const BUNDLE_ID = process.env.EXPO_PUBLIC_BUNDLE_ID;
 
 module.exports = {
   expo: {
-    name: "CoilWalletExpo",
-    slug: "CoilWalletExpo",
+    name: "AnonWalletExpo",
+    slug: "AnonWalletExpo",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "coilwalletexpo",
+    scheme: "anonwalletexpo",
     userInterfaceStyle: "automatic",
     newArchEnabled: false,
     ios: {

@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ActionButton from '@/components/elements/ActionButton';
@@ -68,7 +68,7 @@ function SendScene() {
       console.log('💸 Sending transaction:', {
         from: user.walletAddress,
         to: recipient,
-        amount: `${amount} COIL`,
+        amount: `${amount} ANON`,
         chainId: params.chainId,
       });
 
@@ -88,7 +88,7 @@ function SendScene() {
 
       // Calculate expected new balance (current balance - amount sent)
       const expectedNewBalance = available - desiredAmountWei;
-      console.log(`💰 Expected new balance: ${formatEther(expectedNewBalance)} COIL`);
+      console.log(`💰 Expected new balance: ${formatEther(expectedNewBalance)} ANON`);
 
       // Poll until the transaction is indexed and balance is updated
       let attempts = 0;
@@ -106,7 +106,7 @@ function SendScene() {
           ]);
 
           const currentBalance = hexToBigInt(balanceRaw);
-          console.log(`📊 Current balance: ${balance} COIL`);
+          console.log(`📊 Current balance: ${balance} ANON`);
 
           // Check if balance has decreased to expected amount
           const balanceUpdated = currentBalance <= expectedNewBalance;
@@ -201,7 +201,7 @@ function SendScene() {
         <TouchableOpacity onPress={handleBack} style={styles.backButton} disabled={isConfirming}>
           <MaterialIcons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>Send COIL</Text>
+        <Text style={styles.title}>Send ANON</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -224,7 +224,7 @@ function SendScene() {
 
         {/* Amount Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Amount (COIL)</Text>
+          <Text style={styles.inputLabel}>Amount (ANON)</Text>
           <TextInput
             style={[styles.input, isAmountTooHigh && styles.inputError]}
             placeholder=""

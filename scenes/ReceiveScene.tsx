@@ -68,7 +68,7 @@ function ReceiveScene() {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>Receive COIL</Text>
+        <Text style={styles.title}>Receive ANON</Text>
         <View style={styles.headerSpacer} />
       </View>
 

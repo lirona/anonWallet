@@ -2,10 +2,10 @@
 pragma solidity ^0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {COIL} from "../../src/token/COIL.sol";
+import {ANON} from "../../src/token/ANON.sol";
 
-contract COILTest is Test {
-    COIL public token;
+contract ANONTest is Test {
+    ANON public token;
     address public owner;
     address public user1;
     address public user2;
@@ -33,13 +33,13 @@ contract COILTest is Test {
         orgsDistributor = makeAddr("orgsDistributor");
 
         vm.prank(owner);
-        token = new COIL(owner, orgsDistributor, minter, couponCreator, pauser);
+        token = new ANON(owner, orgsDistributor, minter, couponCreator, pauser);
     }
 
     // ===== CONSTRUCTOR TESTS =====
     function test_Constructor() public view {
-        assertEq(token.name(), "COIL Token");
-        assertEq(token.symbol(), "COIL");
+        assertEq(token.name(), "ANON Token");
+        assertEq(token.symbol(), "ANON");
         assertEq(token.decimals(), 18);
         assertEq(token.cap(), 1_000_000_000 * 10 ** 18);
         assertEq(token.totalSupply(), 0);
@@ -63,7 +63,7 @@ contract COILTest is Test {
 
     function test_DistributeWelcomeBonus_Event() public {
         vm.expectEmit(true, false, false, true);
-        emit COIL.WelcomeBonusDistributed(user1, token.WELCOME_BONUS_AMOUNT());
+        emit ANON.WelcomeBonusDistributed(user1, token.WELCOME_BONUS_AMOUNT());
 
         vm.prank(user1);
         token.distributeWelcomeBonus();
@@ -116,7 +116,7 @@ contract COILTest is Test {
         uint256 amount = 1000 * 10 ** 18;
 
         vm.expectEmit(true, false, false, true);
-        emit COIL.OrgsDistributed(user1, amount);
+        emit ANON.OrgsDistributed(user1, amount);
         vm.prank(orgsDistributor);
         token.distributeOrgs(user1, amount);
 
@@ -159,7 +159,7 @@ contract COILTest is Test {
         uint256 amount = 1000 * 10 ** 18;
 
         vm.expectEmit(true, false, false, true);
-        emit COIL.GovernanceDistributed(user1, amount);
+        emit ANON.GovernanceDistributed(user1, amount);
         vm.prank(minter);
         token.distributeGovernance(user1, amount);
 
@@ -202,7 +202,7 @@ contract COILTest is Test {
         uint256 amount = 50 * 10 ** 18;
 
         vm.expectEmit(true, false, false, true);
-        emit COIL.CouponCreated(couponHash, amount);
+        emit ANON.CouponCreated(couponHash, amount);
 
         vm.prank(couponCreator);
         token.updateCoupon(couponHash, amount);
@@ -240,7 +240,7 @@ contract COILTest is Test {
         token.updateCoupon(couponHash, amount);
 
         vm.expectEmit(true, true, false, true);
-        emit COIL.CouponRedeemed(couponHash, user1, amount);
+        emit ANON.CouponRedeemed(couponHash, user1, amount);
 
         vm.prank(user1);
         token.redeem(couponCode);

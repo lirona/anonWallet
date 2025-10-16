@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.28;
 
 import "forge-std/console2.sol";
 import "account-abstraction/interfaces/IAccount.sol";
@@ -115,7 +115,7 @@ contract SimpleAccount is IAccount, UUPSUpgradeable, Initializable, IERC1271 {
     }
 
     function _validateUserOpSignature(
-        UserOperation calldata userOp,
+        PackedUserOperation calldata userOp,
         bytes32 userOpHash
     ) private view returns (uint256 validationData) {
         bytes memory messageToVerify;
@@ -153,7 +153,7 @@ contract SimpleAccount is IAccount, UUPSUpgradeable, Initializable, IERC1271 {
     }
 
     function validateUserOp(
-        UserOperation calldata userOp,
+        PackedUserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 missingAccountFunds
     )
