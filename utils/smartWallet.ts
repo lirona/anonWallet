@@ -39,15 +39,25 @@ const SIMPLE_ACCOUNT_EXECUTE_BATCH_ABI = [
 ] as const;
 
 // Pimlico bundler client (v1 - for submitting user operations)
+// Routes through Tor privacy proxy if enablePrivacyMode is true
 const bundlerClient = createPublicClient({
   chain: sepolia,
-  transport: http(`https://api.pimlico.io/v1/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
+  transport: http(
+    config.enablePrivacyMode
+      ? config.privacyProxyBundlerUrl
+      : `https://api.pimlico.io/v1/sepolia/rpc?apikey=${config.pimlicoApiKey}`
+  ),
 });
 
 // Pimlico paymaster client (v2 - for sponsorship requests)
+// Routes through Tor privacy proxy if enablePrivacyMode is true
 const paymasterClient = createPublicClient({
   chain: sepolia,
-  transport: http(`https://api.pimlico.io/v2/sepolia/rpc?apikey=${config.pimlicoApiKey}`),
+  transport: http(
+    config.enablePrivacyMode
+      ? config.privacyProxyPaymasterUrl
+      : `https://api.pimlico.io/v2/sepolia/rpc?apikey=${config.pimlicoApiKey}`
+  ),
 });
 
 // Regular clients

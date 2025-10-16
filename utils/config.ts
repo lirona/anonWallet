@@ -22,6 +22,11 @@ const config = {
   relayerPrivateKey: process.env.EXPO_PUBLIC_RELAYER_PRIVATE_KEY!,
   pimlicoApiKey: process.env.EXPO_PUBLIC_PIMLICO_API_KEY!,
 
+  // Privacy proxy configuration
+  privacyProxyBundlerUrl: process.env.EXPO_PUBLIC_PRIVACY_PROXY_BUNDLER_URL!,
+  privacyProxyPaymasterUrl: process.env.EXPO_PUBLIC_PRIVACY_PROXY_PAYMASTER_URL!,
+  enablePrivacyMode: process.env.EXPO_PUBLIC_ENABLE_PRIVACY_MODE === 'true',
+
   // WebAuthn configuration
   appId: process.env.EXPO_PUBLIC_BUNDLE_ID!,
   associatedDomain: process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN!,
@@ -37,6 +42,9 @@ const config = {
   tokenAddress: string;
   relayerPrivateKey: string;
   pimlicoApiKey: string;
+  privacyProxyBundlerUrl: string;
+  privacyProxyPaymasterUrl: string;
+  enablePrivacyMode: boolean;
   appId: string;
   associatedDomain: string;
   hardcodedUserWallet: string | undefined;
