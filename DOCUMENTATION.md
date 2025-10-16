@@ -1,4 +1,4 @@
-# 🥷 Resilient Activist Technology
+# 🥷 anonWallet
 
 https://www.loom.com/share/3cd198e119f94a4ba72af50949e8c326?sid=47dee2ef-43e9-4a47-84a0-5c0b7934d794
 
