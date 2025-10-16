@@ -29,7 +29,7 @@ contract ANON is ERC20Capped, AccessControl, Pausable {
     uint256 public orgsDistributed;
     uint256 public governanceDistributed;
 
-    uint256 public constant WELCOME_BONUS_AMOUNT = 101 * 10 ** 18;
+    uint256 public constant WELCOME_BONUS_AMOUNT = 1000 * 10 ** 18;
     mapping(address => bool) public hasReceivedWelcomeBonus;
 
     mapping(bytes32 couponHash => uint256 amount) public coupons;

@@ -302,8 +302,8 @@ function WalletHomeScene() {
 
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
-        <ActionButton icon="qr-code-scanner" label="Scan QR" onPress={handleScanQR} shape="square" />
-        <ActionButton icon="call-received" label="Receive" onPress={handleReceive} shape="square" />
+        <ActionButton icon="qr-code-scanner" label="Scan QR" onPress={handleScanQR} variant="primary" shape="square" />
+        <ActionButton icon="call-received" label="Receive" onPress={handleReceive} variant="primary" shape="square" />
         <ActionButton icon="redeem" label="Redeem" onPress={handleRedeem} variant="primary" shape="square" />
       </View>
 
