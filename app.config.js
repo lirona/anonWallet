@@ -1,6 +1,10 @@
 // Environment variables are injected by dotenvx when running npm scripts
 const ASSOCIATED_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN;
+const IOS_TEAM_ID = process.env.EXPO_PUBLIC_IOS_TEAM_ID;
 const BUNDLE_ID = process.env.EXPO_PUBLIC_BUNDLE_ID;
+
+// Construct iOS bundle identifier with Team ID prefix
+const IOS_BUNDLE_ID = `${IOS_TEAM_ID}.${BUNDLE_ID}`;
 
 module.exports = {
   expo: {
@@ -18,7 +22,14 @@ module.exports = {
         `webcredentials:${ASSOCIATED_DOMAIN}`,
         `applinks:${ASSOCIATED_DOMAIN}`
       ],
-      bundleIdentifier: BUNDLE_ID
+      bundleIdentifier: IOS_BUNDLE_ID,
+      infoPlist: {
+        CFBundleURLTypes: [
+          {
+            CFBundleURLSchemes: ["coilwalletexpo"]
+          }
+        ]
+      }
     },
     android: {
       adaptiveIcon: {

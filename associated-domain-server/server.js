@@ -7,11 +7,17 @@ const app = express();
 const port = 8080;
 
 // Environment variables are injected by dotenvx
+const IOS_TEAM_ID = process.env.EXPO_PUBLIC_IOS_TEAM_ID;
 const BUNDLE_ID = process.env.EXPO_PUBLIC_BUNDLE_ID;
 const NGROK_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN;
 const ANDROID_SHA256_FINGERPRINT = process.env.EXPO_PUBLIC_ANDROID_SHA256_FINGERPRINT;
 const PIMLICO_API_KEY = process.env.EXPO_PUBLIC_PIMLICO_API_KEY;
-console.log(`Using Bundle ID: ${BUNDLE_ID}`);
+
+// Construct iOS app identifier with Team ID prefix
+const IOS_APP_ID = `${IOS_TEAM_ID}.${BUNDLE_ID}`;
+
+console.log(`Using iOS App ID: ${IOS_APP_ID}`);
+console.log(`Using Android Package: ${BUNDLE_ID}`);
 console.log(`Using Domain: ${NGROK_DOMAIN}`);
 console.log(`Using Android SHA-256 Fingerprint: ${ANDROID_SHA256_FINGERPRINT}`);
 
@@ -40,13 +46,13 @@ app.use(express.json());
 const serveAASA = (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache');
-  
+
   const association = {
     "webcredentials": {
-      "apps": [BUNDLE_ID]
+      "apps": [IOS_APP_ID]
     }
   };
-  
+
   res.json(association);
 };
 
