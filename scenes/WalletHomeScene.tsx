@@ -266,7 +266,7 @@ function WalletHomeScene() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>COIL</Text>
+        <Text style={styles.logo}>🥷</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity onPress={handleSend}>
             <MaterialIcons name="send" size={24} color={colors.white} />
@@ -302,8 +302,8 @@ function WalletHomeScene() {
 
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
-        <ActionButton icon="qr-code-scanner" label="Scan QR" onPress={handleScanQR} shape="square" />
-        <ActionButton icon="call-received" label="Receive" onPress={handleReceive} shape="square" />
+        <ActionButton icon="qr-code-scanner" label="Scan QR" onPress={handleScanQR} variant="primary" shape="square" />
+        <ActionButton icon="call-received" label="Receive" onPress={handleReceive} variant="primary" shape="square" />
         <ActionButton icon="redeem" label="Redeem" onPress={handleRedeem} variant="primary" shape="square" />
       </View>
 

@@ -1,20 +1,20 @@
 import {
-  createPublicClient,
-  encodeFunctionData,
-  http,
-  toHex,
-  type Hex
+    createPublicClient,
+    encodeFunctionData,
+    http,
+    toHex,
+    type Hex
 } from 'viem';
 import { sepolia } from 'viem/chains';
 
 import { ENTRY_POINT_ABI, ENTRY_POINT_ADDRESS } from '@/constants/entryPoint';
 import { FACTORY_ABI } from '@/contracts/abi/factory';
-import COIL_ABI_FILE from '@/services/token/COIL.abi.json';
+import ANON_ABI_FILE from '@/services/token/ANON.abi.json';
 import { type UserOperation } from '@/types/userOperation';
 import config from '@/utils/config';
 
 // Extract the ABI array from the JSON file
-const COIL_ABI = COIL_ABI_FILE.abi;
+const ANON_ABI = ANON_ABI_FILE.abi;
 
 // SimpleAccount executeBatch function ABI (matches contracts/src/SimpleAccount.sol)
 // executeBatch(Call[] calls) where Call = { dest: address, value: uint256, data: bytes }
@@ -122,7 +122,7 @@ export function generateInitCode(publicKey: readonly [Hex, Hex]): Hex {
 }
 
 /**
- * Generate callData for ERC20 token transfer (COIL)
+ * Generate callData for ERC20 token transfer (ANON)
  * Wraps ERC20 transfer() in SimpleAccount execute() function
  * @param to - Recipient address
  * @param amount - Token amount (in wei, 18 decimals)
@@ -133,7 +133,7 @@ export function generateERC20TransferCallData(to: Hex, amount: bigint): Hex {
 
   // 1. Encode ERC20 transfer(to, amount)
   const erc20TransferData = encodeFunctionData({
-    abi: COIL_ABI,
+    abi: ANON_ABI,
     functionName: 'transfer',
     args: [to, amount],
   });
@@ -148,7 +148,7 @@ export function generateERC20TransferCallData(to: Hex, amount: bigint): Hex {
 }
 
 /**
- * Generate callData for claiming welcome bonus from COIL token
+ * Generate callData for claiming welcome bonus from ANON token
  * Wraps distributeWelcomeBonus() in SimpleAccount execute() function
  * @returns Encoded callData for UserOperation
  */
@@ -157,7 +157,7 @@ export function generateWelcomeBonusCallData(): Hex {
 
   // 1. Encode distributeWelcomeBonus() - no parameters needed
   const bonusCallData = encodeFunctionData({
-    abi: COIL_ABI,
+    abi: ANON_ABI,
     functionName: 'distributeWelcomeBonus',
   });
 

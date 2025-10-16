@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
- * @title ILC Token
+ * @title ANON Token
  *
  * Features:
  * - Capped supply at 1B tokens
@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - Welcome bonus distribution for new users
  * - Coupon redemption system for users
  */
-contract COIL is ERC20Capped, AccessControl, Pausable {
+contract ANON is ERC20Capped, AccessControl, Pausable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ORGS_DISTRIBUTOR_ROLE = keccak256("ORGS_DISTRIBUTOR_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -29,7 +29,7 @@ contract COIL is ERC20Capped, AccessControl, Pausable {
     uint256 public orgsDistributed;
     uint256 public governanceDistributed;
 
-    uint256 public constant WELCOME_BONUS_AMOUNT = 101 * 10 ** 18;
+    uint256 public constant WELCOME_BONUS_AMOUNT = 1000 * 10 ** 18;
     mapping(address => bool) public hasReceivedWelcomeBonus;
 
     mapping(bytes32 couponHash => uint256 amount) public coupons;
@@ -46,7 +46,7 @@ contract COIL is ERC20Capped, AccessControl, Pausable {
         address _governanceDistributor,
         address _couponCreator,
         address _pauser
-    ) ERC20("COIL Token", "COIL") ERC20Capped(1_000_000_000 * 10 ** 18) {
+    ) ERC20("ANON Token", "ANON") ERC20Capped(1_000_000_000 * 10 ** 18) {
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
         _grantRole(MINTER_ROLE, _governanceDistributor);
         _grantRole(ORGS_DISTRIBUTOR_ROLE, _orgsDistributor);

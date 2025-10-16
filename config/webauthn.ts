@@ -9,7 +9,7 @@ export const WEBAUTHN_CONFIG = {
   appId: config.appId,
   associatedDomain: config.associatedDomain,
   origin: `https://${config.associatedDomain}`, // Android requires full origin URL
-  rpName: 'CoilWallet',
+  rpName: 'AnonWallet',
   timeout: 60000, // 60 seconds
   userVerification: 'required' as const,
   authenticatorAttachment: 'platform' as const,

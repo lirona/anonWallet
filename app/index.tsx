@@ -29,9 +29,9 @@ export default function WalletCreationScreen() {
       const walletAddress = await smartWalletService.getWalletAddress(publicKey);
       console.log('✅ Wallet address:', walletAddress);
 
-      // 3. Deploy wallet and claim welcome bonus (101 COIL tokens)
+      // 3. Deploy wallet and claim welcome bonus (101 ANON tokens)
       setProgressText('Deploying wallet and claiming bonus...');
-      console.log('🏗️ Step 3: Deploying wallet and claiming 101 COIL welcome bonus...');
+      console.log('🏗️ Step 3: Deploying wallet and claiming 101 ANON welcome bonus...');
       await smartWalletService.deployWalletAndClaimWelcomeBonus(publicKey, rawId);
       console.log('✅ Wallet deployed and welcome bonus claimed');
 
@@ -69,9 +69,9 @@ export default function WalletCreationScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.logo}>COIL</Text>
+        <Text style={styles.logo}>ANON</Text>
 
-        <Text style={styles.title}>Welcome to Coil Wallet</Text>
+        <Text style={styles.title}>Welcome to Anon Wallet 🥷</Text>
 
         <Text style={styles.subtitle}>
           Create your secure wallet with biometric authentication

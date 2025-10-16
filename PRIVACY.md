@@ -1,6 +1,6 @@
 # Privacy-Preserving Account Abstraction via Tor
 
-This document explains the privacy features implemented in the Coil Wallet's account abstraction (ERC-4337) integration.
+This document explains the privacy features implemented in the Anon Wallet's account abstraction (ERC-4337) integration.
 
 ## Problem Statement
 

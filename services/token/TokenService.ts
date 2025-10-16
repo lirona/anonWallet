@@ -1,19 +1,19 @@
 import {
-  createPublicClient,
-  formatUnits,
-  http,
-  parseAbiItem,
-  toHex,
-  type Address,
-  type Hex,
+    createPublicClient,
+    formatUnits,
+    http,
+    parseAbiItem,
+    toHex,
+    type Address,
+    type Hex,
 } from 'viem';
 import { sepolia } from 'viem/chains';
 
 import config from '@/utils/config';
-import COIL_ABI_FILE from './COIL.abi.json';
+import ANON_ABI_FILE from './ANON.abi.json';
 
 // Extract the ABI array from the JSON file
-const COIL_ABI = COIL_ABI_FILE.abi;
+const ANON_ABI = ANON_ABI_FILE.abi;
 
 export interface TokenTransfer {
   from: Address;
@@ -26,7 +26,7 @@ export interface TokenTransfer {
 
 /**
  * Token Service
- * Handles all COIL token operations including balance queries and transfer events
+ * Handles all ANON token operations including balance queries and transfer events
  */
 class TokenService {
   private publicClient;
@@ -57,7 +57,7 @@ class TokenService {
   }
 
   /**
-   * Get COIL token balance for an address
+   * Get ANON token balance for an address
    * @param address - The wallet address to check
    * @returns Balance as a formatted string (e.g., "101.0")
    */
@@ -65,7 +65,7 @@ class TokenService {
     try {
       const balance = await this.publicClient.readContract({
         address: this.tokenAddress,
-        abi: COIL_ABI,
+        abi: ANON_ABI,
         functionName: 'balanceOf',
         args: [address],
       });
@@ -79,7 +79,7 @@ class TokenService {
   }
 
   /**
-   * Get COIL token balance as hex string
+   * Get ANON token balance as hex string
    * @param address - The wallet address to check
    * @returns Balance as hex string
    */
@@ -87,7 +87,7 @@ class TokenService {
     try {
       const balance = await this.publicClient.readContract({
         address: this.tokenAddress,
-        abi: COIL_ABI,
+        abi: ANON_ABI,
         functionName: 'balanceOf',
         args: [address],
       });
@@ -219,22 +219,22 @@ class TokenService {
       const [name, symbol, decimals, totalSupply] = await Promise.all([
         this.publicClient.readContract({
           address: this.tokenAddress,
-          abi: COIL_ABI,
+          abi: ANON_ABI,
           functionName: 'name',
         }),
         this.publicClient.readContract({
           address: this.tokenAddress,
-          abi: COIL_ABI,
+          abi: ANON_ABI,
           functionName: 'symbol',
         }),
         this.publicClient.readContract({
           address: this.tokenAddress,
-          abi: COIL_ABI,
+          abi: ANON_ABI,
           functionName: 'decimals',
         }),
         this.publicClient.readContract({
           address: this.tokenAddress,
-          abi: COIL_ABI,
+          abi: ANON_ABI,
           functionName: 'totalSupply',
         }),
       ]);

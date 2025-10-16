@@ -46,7 +46,7 @@ function QRCodeModal({ visible, onClose, amount, paymentLink }: QRCodeModalProps
         {/* Instructions */}
         <View style={styles.instructionsContainer}>
           <Text style={styles.instructionsText}>
-            Scan this QR code to receive {amount} COIL
+            Scan this QR code to receive {amount} ANON
           </Text>
         </View>
       </SafeAreaView>

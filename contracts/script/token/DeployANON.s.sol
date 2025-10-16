@@ -2,9 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "forge-std/Script.sol";
-import "../../src/token/COIL.sol";
+import "../../src/token/ANON.sol";
 
-contract DeployCOIL is Script {
+contract DeployANON is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address owner = vm.envAddress("OWNER_ADDRESS");
@@ -15,7 +15,7 @@ contract DeployCOIL is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        COIL token = new COIL(
+        ANON token = new ANON(
             owner,
             orgsDistributor,
             minter,
@@ -23,7 +23,7 @@ contract DeployCOIL is Script {
             pauser
         );
 
-        console.log("COIL Token deployed at:", address(token));
+        console.log("ANON Token deployed at:", address(token));
         console.log("Owner:", owner);
         console.log("Orgs Distributor:", orgsDistributor);
         console.log("Minter:", minter);

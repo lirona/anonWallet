@@ -10,7 +10,7 @@ import {
 } from 'viem';
 import { sepolia } from 'viem/chains';
 
-import COIL_ABI_FILE from '@/services/token/COIL.abi.json';
+import ANON_ABI_FILE from '@/services/token/ANON.abi.json';
 import { webAuthnService } from '@/services/webauthn';
 import type { UserOperation } from '@/types/userOperation';
 import { fromBase64urlToBytes } from '@/utils/base64';
@@ -44,8 +44,8 @@ class SmartWalletService {
     });
   }
 
-  // Full COIL ABI (imported JSON)
-  private static readonly COIL_ABI = (COIL_ABI_FILE as any).abi as any[];
+  // Full ANON ABI (imported JSON)
+  private static readonly ANON_ABI = (ANON_ABI_FILE as any).abi as any[];
 
   /**
    * Get deterministic wallet address from public key (before deployment)
@@ -57,7 +57,7 @@ class SmartWalletService {
   }
 
   /**
-   * Deploy smart wallet and claim welcome bonus (101 COIL tokens)
+   * Deploy smart wallet and claim welcome bonus (101 ANON tokens)
    * Deploys wallet via UserOp and calls distributeWelcomeBonus() on token contract
    * @param publicKey - Public key coordinates [x, y]
    * @param rawId - Passkey credential ID (base64Url encoded)
@@ -75,7 +75,7 @@ class SmartWalletService {
       console.log('🏗️ Building deployment UserOp (with initCode + welcome bonus claim)...');
 
       const initCode: Hex = generateInitCode(publicKey);
-      const callData: Hex = generateWelcomeBonusCallData(); // Claim 101 COIL tokens
+      const callData: Hex = generateWelcomeBonusCallData(); // Claim 101 ANON tokens
       const nonce: Hex = toHex(await getNonce(walletAddress));
       const { maxFeePerGas, maxPriorityFeePerGas } = await getGasPrices();
 
@@ -122,9 +122,9 @@ class SmartWalletService {
   }
 
   /**
-   * Send COIL tokens via UserOperation
+   * Send ANON tokens via UserOperation
    * @param to - Recipient address
-   * @param amount - Amount in COIL tokens (e.g., "10.5")
+   * @param amount - Amount in ANON tokens (e.g., "10.5")
    * @param rawId - Passkey credential ID for signing (base64Url encoded)
    * @param walletAddress - Sender wallet address
    * @param publicKey - Sender public key (only needed if wallet not deployed)
@@ -137,9 +137,9 @@ class SmartWalletService {
     walletAddress: Hex,
     publicKey?: readonly [Hex, Hex]
   ): Promise<Hex> {
-    console.log('💸 Sending COIL tokens via UserOperation...', {
+    console.log('💸 Sending ANON tokens via UserOperation...', {
       to,
-      amount: `${amount} COIL`,
+      amount: `${amount} ANON`,
       from: walletAddress,
     });
 
@@ -168,7 +168,7 @@ class SmartWalletService {
       console.log('✅ UserOperation submitted:', {
         userOpHash,
         to,
-        amount: `${amount} COIL`,
+        amount: `${amount} ANON`,
       });
 
       return userOpHash;
@@ -379,13 +379,13 @@ class SmartWalletService {
   }
 
   /**
-   * Get COIL token balance for address
+   * Get ANON token balance for address
    */
   async getTokenBalance(address: Hex): Promise<bigint> {
     const token = config.tokenAddress as Hex;
     const bal = await this.publicClient.readContract({
       address: token,
-      abi: SmartWalletService.COIL_ABI,
+      abi: SmartWalletService.ANON_ABI,
       functionName: 'balanceOf',
       args: [address],
     });
