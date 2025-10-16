@@ -2,6 +2,8 @@
 
 A React Native wallet application built with Expo, featuring Account Abstraction (ERC-4337) and WebAuthn-based authentication using Passkeys. Users can create smart contract wallets secured by biometric authentication without managing private keys directly.
 
+## Submission documentation is in DOCUMENTATION.md
+
 ## Features
 
 - **Account Abstraction (ERC-4337)**: Smart contract wallets with gas sponsorship via Pimlico
