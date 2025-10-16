@@ -1,9 +1,9 @@
 # 🥷 Resilient Activist Technology
 
 ## Project Overview
+ anonWallet was built by activists, for activists, as part of our bigger vision to create a secure community operating system that empowers activists to interact, organize, and trade freely within their communities. Being tech leaders in our activist community, and after creating a [privacy recommendation doc](https://docs.google.com/document/d/1cEIUkHSyYWG0B9wKeQRk2IgXKWflW0QkZzoSkHvndzw) for the community, we decided to take on the challenge and build this tool as part of the RealFi hackathon.
 
-  anonWallet emerged from a real need within the Israeli protest community for enhanced privacy and an alternative economic system. The tool addresses the urgent requirement for activists to opt out of the state's system and engage in commerce within their communities using a secure, private, and community-controlled token system. Following making a [privacy recommendation doc](https://docs.google.com/document/d/1cEIUkHSyYWG0B9wKeQRk2IgXKWflW0QkZzoSkHvndzw) for the community, we decided to take on the challange and build this tool as part of the RealFi hackathon.
-  The primary purpose is to create a Universal Basic Income (UBI) system for activists, allowing them to trade among themselves in a private economy. On wallet creation, activists receive an initial amount of community tokens, and every week a coupon code is released to the community allowing them to redeem additional tokens.
+  anonWallet is the first step in this operating system, and its primary purpose is to establish a Universal Basic Income (UBI) system for activists, enabling us to trade among ourselves in a private, community-based economy. On wallet creation, activists receive an initial amount of community tokens, and every week a coupon code is released to the community allowing them to redeem additional tokens.
 
   The tool specifically addresses the need for safe, private, and resilient economic infrastructure that supports grassroots organizing and community resilience under adversarial conditions. anonWallet enables activists to:
    - **Opt out of the state financial system** into a private economy
@@ -17,15 +17,15 @@
 
 ### Resilience
 
-- **Decentralized Account Abstraction:** Advanced ERC-4337 smart contract wallets eliminate single points of failure and provide enhanced security without traditional private key management
+- **Account Abstraction:** Advanced ERC-4337 smart contract wallets provide enhanced security without traditional private key management, and the ability to fallback on different providers
 - **Cross-Platform Compatibility:** Full support for iOS, Android, and Web, ensuring accessibility across different devices and communities. The web version enhances resilience by providing an additional access point that doesn't require app store approval, making the tool available even if mobile versions face restrictions
 
 ### Security & Privacy
 
 - **Complete Anonymity:** anonWallet is totally anonymous with no KYC and no identifying data linked to the wallet address, ensuring that wallet creation and usage cannot be tied to any personal information
-- **Network-Level Anonymity:** All requests are routed through Tor SOCKS5 proxy (localhost:9050) with IP address stripping
+- **Network-Level Anonymity:** All requests are routed through Tor SOCKS5 proxy with IP address stripping
 - **Passkey Authentication:** WebAuthn/FIDO2 standard biometric authentication eliminates private key exposure while providing strong security. Cryptographic keys never leave secure enclave and can't be extracted even under device seizure or forensic analysis
-- **No Seed Phrases:** No mnemonic backup phrases to be discovered or give away under pressure - complete security through biometric-only access
+- **No Seed Phrases:** No mnemonic backup phrases to be discovered - complete security through biometric-only access
 - **Network Metadata Protection:** Complete elimination of User-Agent, X-Forwarded-For, and other identifying headers that could compromise anonymity
 - **Timing Obfuscation:** Random delays (100-500ms) added to requests as an extra security measure to prevent timing-based correlation analysis
 
@@ -37,6 +37,7 @@
 - **Blockchain Abstraction:** All blockchain-related features are abstracted away from the user, making the technology accessible to non-technical users without requiring knowledge of cryptocurrency concepts
 - **Gas Sponsorship:** Paymasters sponsor gas fees, removing barriers to entry and ensuring activists can use the wallet without needing prior cryptocurrency
 - **Simple Banking UX:** Familiar banking-style interface that feels intuitive to users without crypto experience
+- **Secure Backup:** Passkeys are encrypted and backed up in Google Password Manager/iCloud, allowing wallet restoration on other devices
 
 ---
 
@@ -76,7 +77,7 @@
 ### On the Roadmap
 
 - Anonymous message board using Waku on web version and (when supported) on mobile versions of the app
-- Offline transaction signing
+- Offline transaction queueing
 - Rotating bundler support
 - Multiple paymaster integration
 
