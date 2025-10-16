@@ -161,15 +161,37 @@ ngrok http 8080
    - Go to **Settings** → **Passwords & accounts** → **Add account** → **Google**
    - Sign in with your Google account (required for Google Password Manager)
 
-2. **Set Device PIN/Password:**
-   - Go to **Settings** → **Security** → **Screen lock**
-   - Set a **PIN** or **Password** (swipe/pattern not sufficient)
-   - This is required for passkey storage on Android
-
-3. **Enable Biometric Authentication (Optional but Recommended):**
-   - Once PIN is set, go to **Settings** → **Security** → **Fingerprint**
-   - Follow enrollment wizard (you can use mouse clicks to simulate fingerprints)
+2. **Enable Biometric Authentication (Optional but Recommended):**
+   - Once PIN is set, go to **Settings** → **Security** → **Device Unlock** → **Pixel Imprint (set up fingerprint)**
+   - Follow enrollment wizard (you can use extended controls (three dots on side menu) → Fingerprint to simulate fingerprints)
    - During passkey authentication, use the fingerprint sensor overlay or enter PIN
+
+3. **Configure Android SHA-256 Certificate Fingerprint:**
+
+   The Android App Links (for passkeys) require a SHA-256 certificate fingerprint to verify your app. This fingerprint must match your signing keystore.
+
+   **For Development (Debug Keystore):**
+   ```bash
+   # From the project root, extract SHA-256 fingerprint from debug keystore
+   keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep SHA256
+   ```
+
+   **For Production (Release Keystore):**
+   ```bash
+   # From the project root, extract SHA-256 fingerprint from your release keystore
+   keytool -list -v -keystore android/app/your-release.keystore -alias your-key-alias -storepass your-store-password -keypass your-key-password | grep SHA256
+   ```
+
+   **Copy the SHA-256 fingerprint** (format: `AA:BB:CC:DD:...`) and add it to your `.env.dev` or `.env.prod` file:
+   ```env
+   EXPO_PUBLIC_ANDROID_SHA256_FINGERPRINT=FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C
+   ```
+
+   ⚠️ **Important Notes:**
+   - Development and production keystores have **different fingerprints**
+   - You must update the fingerprint when switching between debug and release builds
+   - The fingerprint is used by the associated-domain-server for Android App Links verification
+   - Without the correct fingerprint, passkeys will not work on Android
 
 ### 6. Run the Application
 
