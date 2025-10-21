@@ -37,8 +37,8 @@ export default function WalletCreationScreen() {
 
       // Wait for deployment to be mined
       setProgressText('ממתין לשליחה...');
-      console.log('⏳ Waiting 30 seconds for deployment to be mined...');
-      await new Promise(resolve => setTimeout(resolve, 30000));
+      console.log('⏳ Waiting 15 seconds for deployment to be mined...');
+      await new Promise(resolve => setTimeout(resolve, 15000));
 
       // 4. Save to AsyncStorage
       const userData = {
