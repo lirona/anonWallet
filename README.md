@@ -1,4 +1,4 @@
-# anonWallet
+# CoilWallet
 
 A React Native wallet application built with Expo, featuring Account Abstraction (ERC-4337) and WebAuthn-based authentication using Passkeys. Users can create smart contract wallets secured by biometric authentication without managing private keys directly.
 
